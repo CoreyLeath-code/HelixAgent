@@ -1,26 +1,48 @@
-name: Automated Release Engineering
+name: HelixAgent Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   release:
-    name: Build Semantic Release Tag
+    name: Publish Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Crucial permission for pushing release assets
-
     steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Build source archive
+        run: |
+          mkdir -p dist
+          tar --exclude=.git --exclude=dist -czf dist/helixagent-${GITHUB_REF_NAME}.tar.gz .
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          fetch-depth: 0 # Pulls full git history for changelog construction
+          files: dist/*.tar.gz
+          generate_release_notes: true
 
-      - name: 🏷️ Calculate Tag and Generate GitHub Release
-        uses: anothrNick/github-tag-action@1.64.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          DEFAULT_BUMP: patch
+  publish-container:
+    name: Publish GHCR Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

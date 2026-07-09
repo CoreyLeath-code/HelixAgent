@@ -1,33 +1,42 @@
-# Contributing to Agentic-AI-Assistant
+# Contributing to HelixAgent
 
-First off, thank you for taking the time to contribute!  
-This project is intended as a **capstone-level, production-grade reference** for autonomous-agent architectures.  
-The guidelines below ensure consistent code quality, security, and documentation across Python, Java, and C++.
+Thank you for contributing to HelixAgent. Changes should preserve correctness, reproducibility, security, and operational clarity across the Python, Java, and C++ components.
 
----
-
-## 📋 Table of Contents
-1. Getting Started
-2. Development Workflow
-3. Branching & Commit Style
-4. Running Tests & Coverage
-5. Building the Docker Image
-6. Helm / Terraform / Ansible
-7. Updating Documentation
-8. Code of Conduct
-
----
-
-## 1 – Getting Started
+## Development setup
 
 ```bash
-# Clone & create virtualenv
-git clone https://github.com/Trojan3877/Agentic-AI-Assistant.git
-cd Agentic-AI-Assistant
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/CoreyLeath-code/HelixAgent.git
+cd HelixAgent
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
 
-# Build Java planner
-cd agent/java && mvn -B package && cd ../../
-# Compile C++ vector library (Linux/macOS)
+Build the native components when working on cross-language execution:
+
+```bash
+cd java && mvn -B package && cd ..
 g++ -O3 -shared -std=c++17 -fPIC agent/cpp/vector.cpp -o agent/cpp/libvector.so
+```
+
+## Required validation
+
+```bash
+ruff check api agent src tests --select E9,F63,F7,F82
+python -m compileall -q api agent src tests
+pytest tests -v --cov=api --cov=src --cov-report=term-missing
+docker build -t helixagent:local .
+```
+
+## Pull-request standard
+
+- Use a focused branch and conventional commit messages.
+- Explain the problem, design choice, test evidence, operational impact, and rollback plan.
+- Add or update tests for behavior changes.
+- Do not commit credentials, tokens, `.env` files, generated artifacts, or production data.
+- Preserve API compatibility unless the PR documents a migration path.
+
+## Review criteria
+
+Reviewers should assess correctness, security, failure behavior, observability, reproducibility, performance, maintainability, deployment impact, and rollback safety.
