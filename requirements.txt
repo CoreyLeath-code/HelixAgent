@@ -44,4 +44,4 @@ ddgs==9.12.1
 
 # --- Documentation ---
 mkdocs==1.5.3
-mkdocs-material==9.5.15
+mkdocs-material==9.7.6
