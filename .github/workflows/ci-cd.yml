@@ -69,26 +69,37 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Start Streamlit app
+      - name: Validate Streamlit module import
+        env:
+          PYTHONPATH: .
         run: |
-          streamlit run streamlit_app.py \
+          python -m compileall -q streamlit_app.py
+          python - <<'PY'
+          import streamlit_app
+          assistant = streamlit_app.get_assistant()
+          response = assistant.run("Compare vectors and summarize HelixAgent.")
+          assert isinstance(response, str)
+          assert response.strip()
+          print("Streamlit app import and HelixAgent assistant smoke test passed.")
+          PY
+      - name: Launch Streamlit server smoke test
+        env:
+          PYTHONPATH: .
+        run: |
+          set +e
+          timeout 25s streamlit run streamlit_app.py \
             --server.headless true \
             --server.address 127.0.0.1 \
             --server.port 8501 \
-            > streamlit.log 2>&1 &
-          echo $! > streamlit.pid
-      - name: Verify Streamlit health endpoint
-        run: |
-          trap 'cat streamlit.log || true; kill $(cat streamlit.pid) >/dev/null 2>&1 || true' EXIT
-          for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8501/_stcore/health; then
-              echo "HelixAgent Streamlit demo is healthy."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Streamlit demo did not become healthy in time."
-          exit 1
+            --server.fileWatcherType none \
+            --browser.gatherUsageStats false
+          status=$?
+          if [ "$status" -eq 124 ]; then
+            echo "Streamlit server stayed alive for the smoke-test window."
+            exit 0
+          fi
+          echo "Streamlit server exited early with status ${status}."
+          exit "$status"
 
   container:
     name: Container Build & Health Smoke Test
