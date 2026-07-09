@@ -48,11 +48,11 @@ class DataIngestor:
             raise ValueError(f"Dataset is empty: {self.file_path}")
 
         self.df = frame
-        log.info("Loaded dataset: %s | Shape: %s", self.file_path, frame.shape)
+        log.info(f"Loaded dataset: {self.file_path} | Shape: {frame.shape}")
         return frame
 
     def preprocess(self) -> pd.DataFrame:
-        """Drop null rows and normalize column names to lowercase snake-like text."""
+        """Drop null rows and normalize column names to lowercase text."""
         if self.df is None:
             raise RuntimeError("No dataset loaded. Run load_data() first.")
 
@@ -92,9 +92,6 @@ class DataIngestor:
         )
 
         log.info(
-            "Split data -> Train: %s, Validation: %s, Test: %s",
-            train.shape,
-            validation.shape,
-            test.shape,
+            f"Split data -> Train: {train.shape}, Validation: {validation.shape}, Test: {test.shape}"
         )
         return train, validation, test
