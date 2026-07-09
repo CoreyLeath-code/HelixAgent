@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest-asyncio>=0.23.7
+ruff>=0.9.0
+mypy>=1.14.0
+bandit>=1.8.0
+pip-audit>=2.7.3
