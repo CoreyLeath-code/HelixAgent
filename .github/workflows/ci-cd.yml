@@ -1,34 +1,94 @@
-name: Continuous Integration & Deployment
+name: HelixAgent Enterprise CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, development]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helixagent-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Core Engine Testing Matrix
+  quality-and-test:
+    name: Python ${{ matrix.python-version }} Quality & Tests
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
     steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: 📦 Install Core Dependencies
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Install testing frameworks
-          pip install pytest pytest-cov
-
-      - name: 🧪 Execute Engine Test Suite
+          pip install -r requirements-dev.txt
+      - name: Validate syntax
+        run: python -m compileall -q api agent src tests
+      - name: Run Ruff correctness checks
+        run: ruff check api agent src tests --select E9,F63,F7,F82
+      - name: Run unit and API tests
+        env:
+          PYTHONPATH: .
         run: |
-          # Runs your unit testing matrix with coverage tracking
-          pytest --cov=src --cov-report=term-missing tests/
+          pytest tests -v \
+            --cov=api \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --junitxml=pytest-results.xml
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-${{ matrix.python-version }}-evidence
+          path: |
+            coverage.xml
+            pytest-results.xml
+          if-no-files-found: warn
+
+  container:
+    name: Container Build & Health Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t helixagent:${{ github.sha }} .
+      - name: Start and verify API
+        run: |
+          docker run -d --rm --name helixagent-ci -p 8000:8000 helixagent:${{ github.sha }}
+          trap 'docker logs helixagent-ci || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+  release-readiness:
+    name: Release Readiness Contract
+    needs: [quality-and-test, container]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify governance and deployment metadata
+        run: |
+          test -f README.md
+          test -f LICENSE
+          test -f SECURITY.md
+          test -f CONTRIBUTING.md
+          test -f CHANGELOG.md
+          test -f Dockerfile
+          test -f .github/dependabot.yml
+          test -f docs/L6_DEPLOYMENT_HYGIENE.md
+          echo "HelixAgent release-readiness contract passed."
