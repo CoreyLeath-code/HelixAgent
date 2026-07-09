@@ -92,18 +92,22 @@ def render_architecture() -> None:
     """Render a lightweight architecture diagram without external assets."""
 
     with st.expander("Architecture overview"):
-        st.mermaid(
+        st.graphviz_chart(
             """
-flowchart LR
-    U[User] --> S[Streamlit Demo]
-    S --> A[HelixAgent Orchestrator]
-    A --> P[Planner]
-    A --> V[Vector Utility]
-    A --> W[Web Search Tool]
-    P --> R[Response]
-    V --> R
-    W --> R
-"""
+digraph HelixAgent {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+    User -> Streamlit;
+    Streamlit -> Orchestrator;
+    Orchestrator -> Planner;
+    Orchestrator -> VectorUtility;
+    Orchestrator -> WebSearch;
+    Planner -> Response;
+    VectorUtility -> Response;
+    WebSearch -> Response;
+}
+""",
+            use_container_width=True,
         )
 
 
