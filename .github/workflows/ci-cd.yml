@@ -62,25 +62,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
-        run: docker build -t helixagent:${{ github.sha }} .
+        run: docker build --pull -t helixagent:${{ github.sha }} .
       - name: Start and verify API
         run: |
           docker run -d --rm --name helixagent-ci -p 8000:8000 helixagent:${{ github.sha }}
-          trap 'docker logs helixagent-ci || true' EXIT
+          trap 'docker logs helixagent-ci || true; docker stop helixagent-ci >/dev/null 2>&1 || true' EXIT
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8000/health; then
+              echo "HelixAgent container is healthy."
               exit 0
             fi
             sleep 2
           done
+          echo "HelixAgent container did not become healthy in time."
           exit 1
 
   release-readiness:
     name: Release Readiness Contract
+    if: always()
     needs: [quality-and-test, container]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify prerequisite jobs
+        env:
+          QUALITY_RESULT: ${{ needs.quality-and-test.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+        run: |
+          echo "Quality result: ${QUALITY_RESULT}"
+          echo "Container result: ${CONTAINER_RESULT}"
+          test "${QUALITY_RESULT}" = "success"
+          test "${CONTAINER_RESULT}" = "success"
       - name: Verify governance and deployment metadata
         run: |
           test -f README.md
