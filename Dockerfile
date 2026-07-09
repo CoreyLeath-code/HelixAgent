@@ -1,15 +1,11 @@
-FROM maven:3.9-eclipse-temurin-11-slim AS java-builder
-WORKDIR /build
-COPY java/ java/
-RUN cd java && mvn package -q -DskipTests
-
 FROM gcc:14 AS cpp-builder
 WORKDIR /build
 COPY agent/cpp/vector.cpp .
 RUN g++ -O3 -shared -std=c++17 -fPIC vector.cpp -o libvector.so
 
 FROM python:3.11-slim AS python-builder
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 WORKDIR /build
 COPY requirements.txt .
 RUN python -m venv /opt/venv \
@@ -28,7 +24,6 @@ WORKDIR /app
 COPY --from=python-builder /opt/venv /opt/venv
 COPY --chown=appuser:appuser . .
 COPY --from=cpp-builder /build/libvector.so agent/cpp/libvector.so
-COPY --from=java-builder /build/java/target/planner.jar agent/java/planner.jar
 
 USER 10001
 EXPOSE 8000
