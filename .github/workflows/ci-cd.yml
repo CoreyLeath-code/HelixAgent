@@ -33,9 +33,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: Validate syntax
-        run: python -m compileall -q api agent src tests
+        run: python -m compileall -q api agent src tests streamlit_app.py
       - name: Run Ruff correctness checks
-        run: ruff check api agent src tests --select E9,F63,F7,F82
+        run: ruff check api agent src tests streamlit_app.py --select E9,F63,F7,F82
       - name: Run unit and API tests
         env:
           PYTHONPATH: .
@@ -55,6 +55,51 @@ jobs:
             coverage.xml
             pytest-results.xml
           if-no-files-found: warn
+
+  streamlit-demo:
+    name: Streamlit Deployment Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Validate Streamlit module import
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m compileall -q streamlit_app.py
+          python - <<'PY'
+          import streamlit_app
+          assistant = streamlit_app.get_assistant()
+          response = assistant.run("Compare vectors and summarize HelixAgent.")
+          assert isinstance(response, str)
+          assert response.strip()
+          print("Streamlit app import and HelixAgent assistant smoke test passed.")
+          PY
+      - name: Launch Streamlit server smoke test
+        env:
+          PYTHONPATH: .
+        run: |
+          set +e
+          timeout 25s streamlit run streamlit_app.py \
+            --server.headless true \
+            --server.address 127.0.0.1 \
+            --server.port 8501 \
+            --server.fileWatcherType none \
+            --browser.gatherUsageStats false
+          status=$?
+          if [ "$status" -eq 124 ]; then
+            echo "Streamlit server stayed alive for the smoke-test window."
+            exit 0
+          fi
+          echo "Streamlit server exited early with status ${status}."
+          exit "$status"
 
   container:
     name: Container Build & Health Smoke Test
@@ -80,18 +125,21 @@ jobs:
   release-readiness:
     name: Release Readiness Contract
     if: always()
-    needs: [quality-and-test, container]
+    needs: [quality-and-test, streamlit-demo, container]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Verify prerequisite jobs
         env:
           QUALITY_RESULT: ${{ needs.quality-and-test.result }}
+          STREAMLIT_RESULT: ${{ needs.streamlit-demo.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
           echo "Quality result: ${QUALITY_RESULT}"
+          echo "Streamlit result: ${STREAMLIT_RESULT}"
           echo "Container result: ${CONTAINER_RESULT}"
           test "${QUALITY_RESULT}" = "success"
+          test "${STREAMLIT_RESULT}" = "success"
           test "${CONTAINER_RESULT}" = "success"
       - name: Verify governance and deployment metadata
         run: |
@@ -101,6 +149,8 @@ jobs:
           test -f CONTRIBUTING.md
           test -f CHANGELOG.md
           test -f Dockerfile
+          test -f streamlit_app.py
+          test -f .streamlit/config.toml
           test -f .github/dependabot.yml
           test -f docs/L6_DEPLOYMENT_HYGIENE.md
           echo "HelixAgent release-readiness contract passed."
