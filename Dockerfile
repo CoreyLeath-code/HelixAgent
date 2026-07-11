@@ -1,4 +1,4 @@
-FROM gcc:14 AS cpp-builder
+FROM gcc:16 AS cpp-builder
 WORKDIR /build
 COPY agent/cpp/vector.cpp .
 RUN g++ -O3 -shared -std=c++17 -fPIC vector.cpp -o libvector.so
