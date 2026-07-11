@@ -15,7 +15,7 @@ jobs:
     name: Publish Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build source archive
         run: |
           mkdir -p dist
@@ -30,7 +30,7 @@ jobs:
     name: Publish GHCR Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
