@@ -3,7 +3,7 @@ WORKDIR /build
 COPY agent/cpp/vector.cpp .
 RUN g++ -O3 -shared -std=c++17 -fPIC vector.cpp -o libvector.so
 
-FROM python:3.11-slim AS python-builder
+FROM python:3.14-slim AS python-builder
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 WORKDIR /build
@@ -12,7 +12,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip \
     && /opt/venv/bin/pip install -r requirements.txt
 
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
