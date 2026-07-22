@@ -20,18 +20,19 @@
   <a href="https://helixagent-mzekflcbhda4zdchpyhjum.streamlit.app/"><img src="https://img.shields.io/badge/Live%20demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Streamlit demo"></a>
 </p>
 
-HelixAgent demonstrates how an agent workflow can combine Python orchestration with optional Java planning and C++ vector operations while remaining deployable as a single service. Native components degrade gracefully to Python implementations when their build artifacts are unavailable.
+HelixAgent demonstrates a durable Python agent runtime with pluggable planning and optional C++ vector operations while remaining deployable as a single service. Native vector operations degrade gracefully to a Python implementation when the shared library is unavailable.
 
 ## Features
 
 - **Graph-based agent execution:** LangGraph coordinates planning and tool execution through a typed state machine.
-- **Polyglot tool integration:** JPype loads an optional Java planner, while `ctypes` loads an optimized C++ cosine-similarity library.
+- **Pluggable planning and native acceleration:** A typed planner protocol supports model-backed implementations, while `ctypes` optionally loads an optimized C++ cosine-similarity library.
 - **Resilient fallbacks:** Python planning and vector implementations keep the agent usable without native artifacts.
 - **FastAPI service:** `/`, `/health`, and `/predict` endpoints with generated OpenAPI documentation.
 - **Observability:** Prometheus metrics and OpenTelemetry instrumentation are attached to the API.
 - **Interactive demo:** A Streamlit interface exercises the same agent runtime.
 - **Container delivery:** Multi-stage Docker build, compiled C++ extension, non-root runtime, and container health check.
 - **Automated assurance:** Python 3.10/3.11 tests, coverage artifacts, API and Streamlit smoke tests, container validation, CodeQL, Gitleaks, Trivy, dependency auditing, and CycloneDX SBOM generation.
+- **Durable autonomy:** Budgeted plan/execute/observe/replan runs, SQLite checkpoints, retries, tool timeouts, explicit approval gates, and resumable run APIs.
 
 ## Architecture
 
@@ -46,7 +47,7 @@ Client / Streamlit
    |     |      |
    |     |      +--> Web search tool
    |     +---------> C++ vector library -> Python fallback
-   +---------------> Java planner      -> Python fallback
+   +---------------> Planner protocol  -> deterministic default
 ```
 
 ## Quick start
@@ -95,7 +96,7 @@ docker run --rm -p 8000:8000 helixagent
 
 ```text
 api/                 FastAPI application and monitoring
-agent/               LangGraph runtime, tools, Java, and C++
+agent/               Autonomous runtime, planner/tool contracts, and optional C++
 src/                 Data and application services
 tests/               Unit, API, and data-processing tests
 .github/workflows/   CI, security, and release automation
@@ -106,4 +107,4 @@ docs/                Engineering and deployment notes
 
 HelixAgent is an engineering portfolio project and reference implementation, not a managed commercial AI platform. The repository focuses on modularity, graceful degradation, observable services, automated validation, and secure delivery.
 
-See [Security](SECURITY.md), [Contributing](CONTRIBUTING.md), [Changelog](CHANGELOG.md), and [deployment hygiene](docs/L6_DEPLOYMENT_HYGIENE.md).
+See [Autonomous runtime](docs/AUTONOMY.md), [Security](SECURITY.md), [Contributing](CONTRIBUTING.md), [Changelog](CHANGELOG.md), and [deployment hygiene](docs/L6_DEPLOYMENT_HYGIENE.md).
