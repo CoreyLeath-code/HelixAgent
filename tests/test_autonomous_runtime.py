@@ -131,3 +131,15 @@ def test_tool_timeout_returns_without_waiting_for_handler() -> None:
     assert observation.success is False
     assert "timed out" in observation.error
     assert time.perf_counter() - started < 0.25
+
+
+def test_store_path_can_be_configured_for_non_root_runtime(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    configured_path = tmp_path / "runtime-data" / "runs.db"
+    monkeypatch.setenv("HELIXAGENT_RUN_DB", str(configured_path))
+
+    with SQLiteRunStore() as store:
+        AutonomousRuntime(store=store).submit("Persist safely")
+
+    assert configured_path.is_file()

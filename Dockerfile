@@ -16,10 +16,12 @@ FROM python:3.11-slim AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    HELIXAGENT_RUN_DB=/app/data/helixagent_runs.db
 
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
 
 COPY --from=python-builder /opt/venv /opt/venv
 COPY --chown=appuser:appuser . .

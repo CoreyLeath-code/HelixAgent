@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -13,8 +14,8 @@ class RunNotFoundError(KeyError):
 
 
 class SQLiteRunStore:
-    def __init__(self, path: str | Path = "data/helixagent_runs.db") -> None:
-        self.path = str(path)
+    def __init__(self, path: str | Path | None = None) -> None:
+        self.path = str(path or os.getenv("HELIXAGENT_RUN_DB", "data/helixagent_runs.db"))
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
@@ -23,6 +24,16 @@ class SQLiteRunStore:
             "(id TEXT PRIMARY KEY, state_json TEXT NOT NULL, updated_at TEXT NOT NULL)"
         )
         self._connection.commit()
+
+    def close(self) -> None:
+        """Release the database handle deterministically."""
+        self._connection.close()
+
+    def __enter__(self) -> SQLiteRunStore:
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
 
     def save(self, run: AgentRun) -> None:
         run.touch()

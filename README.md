@@ -1,7 +1,7 @@
 # HelixAgent
 
 <p align="center">
-  <strong>A modular AI-agent runtime with graph orchestration, polyglot tools, an observable API, and production-oriented delivery controls.</strong>
+  <strong>A durable autonomous-agent runtime with governed tools, observable APIs, and production-oriented delivery controls.</strong>
 </p>
 
 <p align="center">
@@ -15,7 +15,9 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11-3776AB?logo=python&logoColor=white" alt="Python 3.10 and 3.11">
   <img src="https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white" alt="FastAPI">
-  <img src="https://img.shields.io/badge/LangGraph-orchestration-6C5CE7" alt="LangGraph">
+  <img src="https://img.shields.io/badge/Autonomy-budgeted%20control%20loop-6C5CE7" alt="Budgeted autonomous control loop">
+  <img src="https://img.shields.io/badge/State-SQLite%20checkpoints-003B57?logo=sqlite&logoColor=white" alt="SQLite checkpoints">
+  <img src="https://img.shields.io/badge/Benchmarks-reproducible-2E8B57" alt="Reproducible benchmarks">
   <img src="https://img.shields.io/badge/Docker-non--root-2496ED?logo=docker&logoColor=white" alt="Docker">
   <a href="https://helixagent-mzekflcbhda4zdchpyhjum.streamlit.app/"><img src="https://img.shields.io/badge/Live%20demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Streamlit demo"></a>
 </p>
@@ -24,7 +26,7 @@ HelixAgent demonstrates a durable Python agent runtime with pluggable planning a
 
 ## Features
 
-- **Graph-based agent execution:** LangGraph coordinates planning and tool execution through a typed state machine.
+- **Bounded autonomous execution:** A typed plan/execute/observe/replan loop enforces iteration and tool-call budgets.
 - **Pluggable planning and native acceleration:** A typed planner protocol supports model-backed implementations, while `ctypes` optionally loads an optimized C++ cosine-similarity library.
 - **Resilient fallbacks:** Python planning and vector implementations keep the agent usable without native artifacts.
 - **FastAPI service:** `/`, `/health`, and `/predict` endpoints with generated OpenAPI documentation.
@@ -43,12 +45,56 @@ Client / Streamlit
      FastAPI  ----> Prometheus + OpenTelemetry
         |
         v
- LangGraph Agent
-   |     |      |
-   |     |      +--> Web search tool
-   |     +---------> C++ vector library -> Python fallback
-   +---------------> Planner protocol  -> deterministic default
+ Autonomous runtime ----> SQLite checkpoints
+   |        |       |
+   |        |       +--> Governed tool registry + approval gates
+   |        +----------> C++ vector library -> Python fallback
+   +-------------------> Planner protocol -> deterministic default
 ```
+
+## L5 engineering details
+
+The runtime separates policy from mechanism: planners propose typed tasks, the runtime owns
+budgets and state transitions, the registry owns tool risk and timeout policy, and the store owns
+durability. This keeps a future model planner from bypassing execution invariants.
+
+| Concern | Design decision | Operational tradeoff |
+|---|---|---|
+| Recovery | Checkpoint every run transition in SQLite | Simple single-node durability; distributed workers require leases and a shared store |
+| Safety | Pause write/destructive tools for explicit approval | Safer default with additional operator latency |
+| Runaway control | Bound iterations, tool calls, retries, and tool duration | Predictable cost; a valid long task may exhaust its budget |
+| Planner extensibility | Typed `Planner` protocol with deterministic default | Credential-free tests; model quality is evaluated separately |
+| Native acceleration | Optional C++ cosine similarity with Python fallback | Portable behavior with environment-dependent performance |
+
+Runtime invariants are covered by tests: terminal states are persisted, denied tools are never
+executed, budget exhaustion fails closed, retries are bounded, and timeout responses do not wait
+for a slow handler. The database location is configurable with `HELIXAGENT_RUN_DB`; the container
+uses the writable non-root path `/app/data/helixagent_runs.db`.
+
+## Research metrics and benchmarks
+
+The benchmark is a deterministic microbenchmark of orchestration plus SQLite checkpoints. It
+does **not** include network search, model inference, or provider latency.
+
+| Metric | Reference result |
+|---|---:|
+| Successful runs | 200/200 (100%) |
+| End-to-end latency, p50 | 7.798 ms |
+| End-to-end latency, p95 | 8.629 ms |
+| Checkpoint read latency, p50 | 0.092 ms |
+| Checkpoint read latency, p95 | 0.119 ms |
+| Sequential throughput | 125.666 runs/s |
+
+Reference environment: Python 3.12.13, Windows 11 build 26200, AMD64; 20 warmups, 200 measured
+runs, two deterministic tasks per run, measured July 22, 2026. These are reference observations,
+not production SLOs or cross-hardware claims. Reproduce locally with:
+
+```bash
+python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
+```
+
+See [benchmark methodology and limitations](docs/BENCHMARKS.md) for metric definitions and the
+evaluation boundary. CI also uploads a fresh `benchmark-results.json` artifact on Python 3.11.
 
 ## Quick start
 
@@ -88,6 +134,7 @@ streamlit run streamlit_app.py
 pip install -r requirements-dev.txt
 pytest tests -v --cov=api --cov=src --cov-report=term-missing
 ruff check api agent src tests streamlit_app.py
+python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
 docker build -t helixagent .
 docker run --rm -p 8000:8000 helixagent
 ```

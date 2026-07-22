@@ -46,6 +46,11 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml \
             --junitxml=pytest-results.xml
+      - name: Run reproducible autonomy benchmark
+        if: matrix.python-version == '3.11'
+        env:
+          PYTHONPATH: .
+        run: python -m benchmarks.autonomy_runtime --iterations 100 --warmup 10 > benchmark-results.json
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -54,6 +59,7 @@ jobs:
           path: |
             coverage.xml
             pytest-results.xml
+            benchmark-results.json
           if-no-files-found: warn
 
   streamlit-demo:
