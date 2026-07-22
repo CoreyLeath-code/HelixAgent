@@ -108,3 +108,5 @@ mlartifacts/
 
 # Data files (large datasets should not be committed)
 data/output/
+data/*.db
+data/*.db-journal

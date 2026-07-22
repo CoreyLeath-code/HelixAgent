@@ -7,13 +7,15 @@ Main API entrypoint. Mounts monitoring (Prometheus + OpenTelemetry) and
 exposes core routes for agent inference.
 """
 
-import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from agent.autonomy.models import AgentRun
+from agent.autonomy.runtime import AutonomousRuntime
+from agent.autonomy.store import RunNotFoundError
 from api.monitoring import setup_monitoring
 
 app = FastAPI(
@@ -27,7 +29,20 @@ setup_monitoring(app)
 
 
 class PredictRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(min_length=1, max_length=4_000)
+
+
+class RunRequest(BaseModel):
+    objective: str = Field(min_length=1, max_length=4_000)
+    max_iterations: int = Field(default=12, ge=1, le=100)
+    tool_budget: int = Field(default=10, ge=1, le=100)
+
+
+class ApprovalDecision(BaseModel):
+    approved: bool
+
+
+runtime = AutonomousRuntime()
 
 
 @app.get("/", include_in_schema=False)
@@ -44,24 +59,48 @@ async def health():
 
 @app.post("/predict", tags=["Agent"])
 async def predict(payload: PredictRequest):
-    """
-    Run the agent on a user prompt.
+    """Backward-compatible synchronous endpoint."""
+    run = runtime.submit(payload.prompt)
+    completed = runtime.run(run.id)
+    if completed.error:
+        raise HTTPException(status_code=503, detail={"run_id": run.id, "error": completed.error})
+    return {"run_id": run.id, "status": completed.status, "result": completed.final_output}
 
-    Body (JSON):
-        { "prompt": "<your query>" }
 
-    Returns:
-        { "result": "<agent response>" }
-    """
+@app.post("/runs", response_model=AgentRun, status_code=status.HTTP_202_ACCEPTED, tags=["Agent"])
+async def create_run(payload: RunRequest, background_tasks: BackgroundTasks) -> AgentRun:
+    """Create a durable autonomous run and execute it outside the request lifecycle."""
+    run = runtime.submit(
+        payload.objective,
+        max_iterations=payload.max_iterations,
+        tool_budget=payload.tool_budget,
+    )
+    background_tasks.add_task(runtime.run, run.id)
+    return run
+
+
+@app.get("/runs/{run_id}", response_model=AgentRun, tags=["Agent"])
+async def get_run(run_id: str) -> AgentRun:
     try:
-        from agent.agent_core import AgenticAssistant  # noqa: PLC0415
+        return runtime.store.get(run_id)
+    except RunNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Run not found") from exc
 
-        assistant = AgenticAssistant()
-        result = assistant.run(payload.prompt)
-    except Exception as exc:  # noqa: BLE001
-        result = f"[HelixAgent] received: {payload.prompt}"
-        logging.getLogger(__name__).warning("Agent core unavailable: %s", exc)
-    return {"result": result}
+
+@app.post("/runs/{run_id}/approvals/{task_id}", response_model=AgentRun, tags=["Agent"])
+async def decide_approval(
+    run_id: str,
+    task_id: str,
+    payload: ApprovalDecision,
+    background_tasks: BackgroundTasks,
+) -> AgentRun:
+    try:
+        run = runtime.approve(run_id, task_id, payload.approved)
+    except (RunNotFoundError, KeyError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if payload.approved:
+        background_tasks.add_task(runtime.run, run.id)
+    return run
 
 
 if __name__ == "__main__":

@@ -6,13 +6,16 @@ Monitoring for HelixAgent
 Provides Prometheus metrics and OpenTelemetry tracing integration.
 """
 
-from fastapi import FastAPI, Request
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from starlette.responses import Response
+import os
+import time
+
 from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from fastapi import FastAPI, Request
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from starlette.responses import Response
 
 # -----------------------------
 # Prometheus Metrics
@@ -41,7 +44,6 @@ def setup_monitoring(app: FastAPI):
     # Middleware for metrics
     @app.middleware("http")
     async def prometheus_middleware(request: Request, call_next):
-        import time
         start = time.time()
 
         response = await call_next(request)
@@ -57,10 +59,12 @@ def setup_monitoring(app: FastAPI):
     # -----------------------------
     # OpenTelemetry Tracing
     # -----------------------------
-    trace.set_tracer_provider(TracerProvider())
-    tracer = trace.get_tracer(__name__)
-    span_processor = BatchSpanProcessor(ConsoleSpanExporter())
-    trace.get_tracer_provider().add_span_processor(span_processor)
+    provider = trace.get_tracer_provider()
+    if not isinstance(provider, TracerProvider):
+        provider = TracerProvider()
+        trace.set_tracer_provider(provider)
+    if os.getenv("HELIXAGENT_OTEL_CONSOLE", "false").lower() == "true":
+        provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 
     # Auto-instrument FastAPI
     FastAPIInstrumentor.instrument_app(app)
