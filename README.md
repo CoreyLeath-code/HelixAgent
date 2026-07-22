@@ -52,8 +52,6 @@ Client / Streamlit
    +-------------------> Planner protocol -> deterministic default
 ```
 
-## L5 engineering details
-
 The runtime separates policy from mechanism: planners propose typed tasks, the runtime owns
 budgets and state transitions, the registry owns tool risk and timeout policy, and the store owns
 durability. This keeps a future model planner from bypassing execution invariants.
