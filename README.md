@@ -1,7 +1,7 @@
 # HelixAgent
 
 <p align="center">
-  <strong>A durable autonomous-agent runtime with governed tools, observable APIs, and production-oriented delivery controls.</strong>
+  <strong>A deterministic, budgeted agent runtime with governed tools, observable APIs, and delivery controls.</strong>
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@ HelixAgent demonstrates a durable Python agent runtime with pluggable planning a
 ## Features
 
 - **Bounded autonomous execution:** A typed plan/execute/observe/replan loop enforces iteration and tool-call budgets.
-- **Pluggable planning and native acceleration:** A typed planner protocol supports model-backed implementations, while `ctypes` optionally loads an optimized C++ cosine-similarity library.
+- **Deterministic planning and native acceleration:** The typed planner protocol uses a rule-based default, while `ctypes` optionally loads a C++ cosine-similarity library.
 - **Resilient fallbacks:** Python planning and vector implementations keep the agent usable without native artifacts.
 - **FastAPI service:** `/`, `/health`, and `/predict` endpoints with generated OpenAPI documentation.
 - **Observability:** Prometheus metrics and OpenTelemetry instrumentation are attached to the API.
@@ -61,7 +61,7 @@ durability. This keeps a future model planner from bypassing execution invariant
 | Recovery | Checkpoint every run transition in SQLite | Simple single-node durability; distributed workers require leases and a shared store |
 | Safety | Pause write/destructive tools for explicit approval | Safer default with additional operator latency |
 | Runaway control | Bound iterations, tool calls, retries, and tool duration | Predictable cost; a valid long task may exhaust its budget |
-| Planner extensibility | Typed `Planner` protocol with deterministic default | Credential-free tests; model quality is evaluated separately |
+| Planner extensibility | Typed `Planner` protocol with rule-based default | Credential-free execution; no model provider is implemented |
 | Native acceleration | Optional C++ cosine similarity with Python fallback | Portable behavior with environment-dependent performance |
 
 Runtime invariants are covered by tests: terminal states are persisted, denied tools are never
