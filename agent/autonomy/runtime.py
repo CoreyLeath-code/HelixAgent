@@ -76,6 +76,9 @@ class AutonomousRuntime:
 
     def run(self, run_id: str) -> AgentRun:
         run = self.store.get(run_id)
+        if run.status in (RunStatus.COMPLETED, RunStatus.FAILED):
+            return run
+
         run.status = RunStatus.RUNNING
         self.store.save(run)
 
@@ -87,7 +90,13 @@ class AutonomousRuntime:
                 return run
 
             task = run.plan[run.current_task]
-            spec = self.registry.get(task.tool)
+            try:
+                spec = self.registry.get(task.tool)
+            except KeyError as exc:
+                run.status = RunStatus.FAILED
+                run.error = str(exc)
+                self.store.save(run)
+                return run
             if spec.risk != RiskLevel.READ_ONLY and not self._is_approved(run, task.id):
                 if not any(item.task_id == task.id for item in run.approvals):
                     run.approvals.append(
