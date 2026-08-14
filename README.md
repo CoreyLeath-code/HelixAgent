@@ -1,7 +1,7 @@
 # HelixAgent
 
 <p align="center">
-  <strong>A deterministic, budgeted agent runtime with governed tools, observable APIs, and delivery controls.</strong>
+  <strong>Durable autonomous-agent runtime in Python: a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints for resumable runs. FastAPI service with Prometheus + OpenTelemetry, optional C++ acceleration with Python fallback, and reproducible benchmarks.</strong>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="https://helixagent-mzekflcbhda4zdchpyhjum.streamlit.app/"><img src="https://img.shields.io/badge/Live%20demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Streamlit demo"></a>
 </p>
 
-HelixAgent demonstrates a durable Python agent runtime with pluggable planning and optional C++ vector operations while remaining deployable as a single service. Native vector operations degrade gracefully to a Python implementation when the shared library is unavailable.
+HelixAgent is a durable Python agent runtime built around a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints. Its included planner is deterministic and rule-based; the planner protocol is extensible, but no model provider is implemented. Optional C++ cosine similarity degrades gracefully to a scale-stable Python fallback when the shared library is unavailable.
 
 ## Features
 
@@ -94,6 +94,12 @@ python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
 See [benchmark methodology and limitations](docs/BENCHMARKS.md) for metric definitions and the
 evaluation boundary. CI also uploads a fresh `benchmark-results.json` artifact on Python 3.11.
 
+## Evidence boundaries
+
+The CI matrix exercises Python 3.10 and 3.11 quality/tests, container API health, and Streamlit startup; security and supply-chain workflows run separately. Runtime contract coverage includes terminal-run idempotence, approval gating, bounded retries and budgets, persisted failure for unknown tools, and Python vector fallback properties. The C++ path remains optional and environment-dependent, so native-enabled parity is not claimed.
+
+For the full claim-to-evidence map, invariant definitions, and reproducible statistical primitives, see [claims matrix](docs/CLAIMS_MATRIX.md), [runtime invariants](docs/RUNTIME_INVARIANTS.md), and [evaluation notes](benchmarks/eval/README.md).
+
 ## Quick start
 
 Requires Python 3.10 or newer.
@@ -130,7 +136,7 @@ streamlit run streamlit_app.py
 
 ```bash
 pip install -r requirements-dev.txt
-pytest tests -v --cov=api --cov=src --cov-report=term-missing
+pytest tests -v --cov=agent --cov=api --cov=src --cov-report=term-missing
 ruff check api agent src tests streamlit_app.py
 python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
 docker build -t helixagent .
