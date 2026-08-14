@@ -1,7 +1,7 @@
 [project]
 name = "helixagent"
 version = "1.0.0"
-description = "Modular AI agent framework for automation, reasoning, and decision-making."
+description = "Deterministic budgeted agent runtime with governed tools and SQLite checkpoints."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -13,7 +13,7 @@ pythonpath = ["."]
 addopts = "-v"
 
 [tool.coverage.run]
-source = ["src", "api"]
+source = ["agent", "src", "api"]
 omit = ["tests/*"]
 
 [tool.black]
