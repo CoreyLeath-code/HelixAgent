@@ -76,6 +76,23 @@ def test_python_vector_fallback_defines_zero_and_dimension_behavior(monkeypatch)
         agent_core.cosine_sim([1.0], [1.0, 2.0])
 
 
+@pytest.mark.parametrize(
+    ("left", "right", "expected"),
+    [
+        ([3.565393874732073e-277], [-1.0], -1.0),
+        ([1e308, 1e308], [1e308, 1e308], 1.0),
+    ],
+)
+def test_python_vector_fallback_is_stable_at_extreme_scales(
+    monkeypatch, left, right, expected
+) -> None:
+    monkeypatch.setattr(agent_core, "_lib_vec", None)
+
+    assert math.isclose(
+        agent_core.cosine_sim(left, right), expected, rel_tol=1e-12, abs_tol=1e-12
+    )
+
+
 @st.composite
 def nonzero_vector_pairs(draw):
     dimension = draw(st.integers(min_value=1, max_value=12))
