@@ -95,14 +95,17 @@ def nonzero_vector_pairs(draw):
 
 
 @given(nonzero_vector_pairs())
-def test_python_cosine_fallback_satisfies_basic_properties(monkeypatch, pair) -> None:
-    monkeypatch.setattr(agent_core, "_lib_vec", None)
-    left, right = pair
+def test_python_cosine_fallback_satisfies_basic_properties(pair) -> None:
+    # Hypothesis executes many examples, so use a local patch context instead of
+    # pytest's function-scoped monkeypatch fixture.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(agent_core, "_lib_vec", None)
+        left, right = pair
 
-    score = agent_core.cosine_sim(left, right)
-    reverse = agent_core.cosine_sim(right, left)
-    self_score = agent_core.cosine_sim(left, left)
+        score = agent_core.cosine_sim(left, right)
+        reverse = agent_core.cosine_sim(right, left)
+        self_score = agent_core.cosine_sim(left, left)
 
-    assert -1.0 - 1e-12 <= score <= 1.0 + 1e-12
-    assert math.isclose(score, reverse, rel_tol=1e-12, abs_tol=1e-12)
-    assert math.isclose(self_score, 1.0, rel_tol=1e-12, abs_tol=1e-12)
+        assert -1.0 - 1e-12 <= score <= 1.0 + 1e-12
+        assert math.isclose(score, reverse, rel_tol=1e-12, abs_tol=1e-12)
+        assert math.isclose(self_score, 1.0, rel_tol=1e-12, abs_tol=1e-12)
