@@ -31,7 +31,7 @@ def cosine_sim(left: list[float], right: list[float]) -> float:
     if _lib_vec is not None:
         array_type = ctypes.c_double * len(left)
         return float(_lib_vec.cosine_similarity(array_type(*left), array_type(*right), len(left)))
-    dot = sum(a * b for a, b in zip(left, right))
+    dot = sum(a * b for a, b in zip(left, right, strict=True))
     magnitude = math.sqrt(sum(value * value for value in left)) * math.sqrt(
         sum(value * value for value in right)
     )
