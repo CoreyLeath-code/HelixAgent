@@ -31,11 +31,18 @@ def cosine_sim(left: list[float], right: list[float]) -> float:
     if _lib_vec is not None:
         array_type = ctypes.c_double * len(left)
         return float(_lib_vec.cosine_similarity(array_type(*left), array_type(*right), len(left)))
-    dot = sum(a * b for a, b in zip(left, right))
-    magnitude = math.sqrt(sum(value * value for value in left)) * math.sqrt(
-        sum(value * value for value in right)
+    # Normalize before accumulating the dot product.  Squaring tiny or huge
+    # components first can underflow or overflow even when cosine is well-defined.
+    left_magnitude = math.hypot(*left)
+    right_magnitude = math.hypot(*right)
+    if not left_magnitude or not right_magnitude:
+        return 0.0
+
+    normalized_dot = math.fsum(
+        (a / left_magnitude) * (b / right_magnitude)
+        for a, b in zip(left, right, strict=True)
     )
-    return dot / magnitude if magnitude else 0.0
+    return max(-1.0, min(1.0, normalized_dot))
 
 
 class AgenticAssistant:

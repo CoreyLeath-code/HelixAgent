@@ -1,7 +1,7 @@
 # HelixAgent
 
 <p align="center">
-  <strong>A durable autonomous-agent runtime with governed tools, observable APIs, and production-oriented delivery controls.</strong>
+  <strong>Durable autonomous-agent runtime in Python: a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints for resumable runs. FastAPI service with Prometheus + OpenTelemetry, optional C++ acceleration with Python fallback, and reproducible benchmarks.</strong>
 </p>
 
 <p align="center">
@@ -22,12 +22,12 @@
   <a href="https://helixagent-mzekflcbhda4zdchpyhjum.streamlit.app/"><img src="https://img.shields.io/badge/Live%20demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Streamlit demo"></a>
 </p>
 
-HelixAgent demonstrates a durable Python agent runtime with pluggable planning and optional C++ vector operations while remaining deployable as a single service. Native vector operations degrade gracefully to a Python implementation when the shared library is unavailable.
+HelixAgent is a durable Python agent runtime built around a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints. Its included planner is deterministic and rule-based; the planner protocol is extensible, but no model provider is implemented. Optional C++ cosine similarity degrades gracefully to a scale-stable Python fallback when the shared library is unavailable.
 
 ## Features
 
 - **Bounded autonomous execution:** A typed plan/execute/observe/replan loop enforces iteration and tool-call budgets.
-- **Pluggable planning and native acceleration:** A typed planner protocol supports model-backed implementations, while `ctypes` optionally loads an optimized C++ cosine-similarity library.
+- **Deterministic planning and native acceleration:** The typed planner protocol uses a rule-based default, while `ctypes` optionally loads a C++ cosine-similarity library.
 - **Resilient fallbacks:** Python planning and vector implementations keep the agent usable without native artifacts.
 - **FastAPI service:** `/`, `/health`, and `/predict` endpoints with generated OpenAPI documentation.
 - **Observability:** Prometheus metrics and OpenTelemetry instrumentation are attached to the API.
@@ -61,7 +61,7 @@ durability. This keeps a future model planner from bypassing execution invariant
 | Recovery | Checkpoint every run transition in SQLite | Simple single-node durability; distributed workers require leases and a shared store |
 | Safety | Pause write/destructive tools for explicit approval | Safer default with additional operator latency |
 | Runaway control | Bound iterations, tool calls, retries, and tool duration | Predictable cost; a valid long task may exhaust its budget |
-| Planner extensibility | Typed `Planner` protocol with deterministic default | Credential-free tests; model quality is evaluated separately |
+| Planner extensibility | Typed `Planner` protocol with rule-based default | Credential-free execution; no model provider is implemented |
 | Native acceleration | Optional C++ cosine similarity with Python fallback | Portable behavior with environment-dependent performance |
 
 Runtime invariants are covered by tests: terminal states are persisted, denied tools are never
@@ -93,6 +93,12 @@ python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
 
 See [benchmark methodology and limitations](docs/BENCHMARKS.md) for metric definitions and the
 evaluation boundary. CI also uploads a fresh `benchmark-results.json` artifact on Python 3.11.
+
+## Evidence boundaries
+
+The CI matrix exercises Python 3.10 and 3.11 quality/tests, container API health, and Streamlit startup; security and supply-chain workflows run separately. Runtime contract coverage includes terminal-run idempotence, approval gating, bounded retries and budgets, persisted failure for unknown tools, and Python vector fallback properties. The C++ path remains optional and environment-dependent, so native-enabled parity is not claimed.
+
+For the full claim-to-evidence map, invariant definitions, and reproducible statistical primitives, see [claims matrix](docs/CLAIMS_MATRIX.md), [runtime invariants](docs/RUNTIME_INVARIANTS.md), and [evaluation notes](benchmarks/eval/README.md).
 
 ## Quick start
 
@@ -130,7 +136,7 @@ streamlit run streamlit_app.py
 
 ```bash
 pip install -r requirements-dev.txt
-pytest tests -v --cov=api --cov=src --cov-report=term-missing
+pytest tests -v --cov=agent --cov=api --cov=src --cov-report=term-missing
 ruff check api agent src tests streamlit_app.py
 python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
 docker build -t helixagent .
