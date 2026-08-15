@@ -158,6 +158,19 @@ docker build -t helixagent .
 docker run --rm -p 8000:8000 helixagent
 ```
 
+## Releases and reproducibility
+
+Maintainers create releases by pushing a validated semantic-version tag; the tag workflow
+validates the exact commit before it can create a GitHub Release.
+
+~~~bash
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+~~~
+
+See [release procedure and evidence artifacts](docs/RELEASING.md) for the required
+changelog/version update, validation, and reproducibility guidance.
+
 ## Project map
 
 ```text
