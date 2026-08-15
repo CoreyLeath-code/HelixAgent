@@ -160,4 +160,5 @@ jobs:
           test -f .streamlit/config.toml
           test -f .github/dependabot.yml
           test -f docs/L6_DEPLOYMENT_HYGIENE.md
+          test -f docs/RELEASING.md
           echo "HelixAgent release-readiness contract passed."
