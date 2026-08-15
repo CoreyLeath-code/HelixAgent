@@ -24,7 +24,7 @@ Before creating a release tag:
 
    ~~~bash
    pip install -r requirements-dev.txt
-   ruff check .
+   ruff check api agent src tests streamlit_app.py --select E9,F63,F7,F82
    pytest
    docker build -t helixagent-release .
    ~~~
