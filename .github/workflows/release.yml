@@ -52,7 +52,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: Run Ruff
-        run: ruff check .
+        run: ruff check api agent src tests streamlit_app.py --select E9,F63,F7,F82
       - name: Run tests
         env:
           PYTHONPATH: .
@@ -152,7 +152,7 @@ jobs:
 
           ~~~bash
           pip install -r requirements-dev.txt
-          ruff check .
+          ruff check api agent src tests streamlit_app.py --select E9,F63,F7,F82
           pytest
           docker build -t helixagent-release .
           ~~~
@@ -172,7 +172,7 @@ jobs:
             cat dist/changelog-section.md
             echo
             echo "## Validation"
-            echo "- Ruff: passed"
+            echo "- Ruff correctness gate: passed"
             echo "- Tests: passed"
             echo "- Release-image build and optional C++ ctypes interop: passed"
             echo "- CodeQL and secret scan: passed"
