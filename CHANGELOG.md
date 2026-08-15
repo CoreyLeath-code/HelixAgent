@@ -16,11 +16,16 @@ The project follows Semantic Versioning and the Keep a Changelog format.
 - CodeQL, Gitleaks, Trivy, pip-audit, Dependabot, and CycloneDX SBOM automation.
 - GitHub Release artifacts and GHCR image publishing.
 - Security, contribution, release-readiness, and nine-tier deployment-hygiene documentation.
+- Evidence-driven semantic-tag release validation with source checksums, CycloneDX SBOM attachment, and reproducibility instructions.
+- Three-way vector-backend benchmark infrastructure that writes measurements only when executed.
 
 ### Changed
 
 - Hardened `DataIngestor` with file validation, split-parameter validation, deterministic partitioning, duplicate-column detection, and explicit types.
 - Reworked the production image into isolated Java, C++, Python build stages and a non-root runtime stage.
+- Made NumPy/BLAS the default cosine-similarity backend; the C++ ctypes backend is explicit opt-in interoperability and pure Python remains the degradation path.
+- Hardened the ctypes boundary by coercing vectors to contiguous float64 buffers before pointer passing.
+- Corrected vector-backend documentation to remove unsupported C++ performance claims.
 
 ## [1.0.0] - 2025-06-20
 
