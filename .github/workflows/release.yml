@@ -34,10 +34,10 @@ jobs:
           version="${version#v}"
           test "${{ github.event.created }}" = "true"
           git cat-file -e "${tag_name}^{tag}"
-          case "$tag_name" in
-            v[0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "Ref is not a semantic-version tag: $tag_name"; exit 1 ;;
-          esac
+          if [[ ! "$tag_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Ref is not a semantic-version tag: $tag_name"
+            exit 1
+          fi
           grep -Fq "version = \"$version\"" pyproject.toml
           awk -v version="$version" '
             $0 ~ "^## \\[" version "\\]" { found = 1 }
