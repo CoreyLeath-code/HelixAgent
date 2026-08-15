@@ -13,7 +13,6 @@ def test_autonomy_benchmark_reports_auditable_metrics() -> None:
     assert report["results"]["run_latency_ms_p95"] > 0
 
 
-
 def test_vector_benchmark_reports_current_measurements() -> None:
     report = run_vector_benchmark(sizes=(4,), repetitions=2, warmup=1, seed=23)
 
