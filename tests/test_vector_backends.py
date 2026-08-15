@@ -57,6 +57,17 @@ def test_cpp_backend_covers_known_cases(
     )
 
 
+@pytest.mark.skipif(
+    not agent_core.cpp_backend_available(),
+    reason="optional C++ shared library is not available on this runner",
+)
+@pytest.mark.parametrize(("left", "right", "expected"), KNOWN_CASES)
+def test_loaded_cpp_backend_covers_known_cases(left, right, expected) -> None:
+    assert agent_core.cosine_similarity_cpp(left, right) == pytest.approx(
+        expected, abs=1e-12
+    )
+
+
 def test_available_backends_agree_on_seeded_vectors() -> None:
     generator = np.random.default_rng(8_675_309)
     left = generator.normal(size=257)
