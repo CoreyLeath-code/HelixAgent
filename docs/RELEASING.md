@@ -44,10 +44,10 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ~~~
 
-Only semantic-version tags matching `v*.*.*` start the release workflow. The
-workflow checks out the exact tag commit, runs validation and security/SBOM work,
-then creates a GitHub Release only if those required jobs succeed. It refuses to
-overwrite an existing GitHub Release.
+Only newly-created annotated semantic-version tags matching `v*.*.*` start the
+release workflow. The workflow rejects tag-update events, checks out the exact tag
+commit, runs validation and security/SBOM work, then creates a GitHub Release only
+if those required jobs succeed. It refuses to overwrite an existing GitHub Release.
 
 ## Evidence artifacts
 
