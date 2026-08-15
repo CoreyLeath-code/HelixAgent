@@ -31,7 +31,7 @@ jobs:
         run: |
           tag_name="${{ github.ref_name }}"
           version="${{ github.ref_name }}"
-          version="${{ version#v }"
+          version="${version#v}"
           case "$tag_name" in
             v[0-9]*.[0-9]*.[0-9]*) ;;
             *) echo "Ref is not a semantic-version tag: $tag_name"; exit 1 ;;
@@ -136,7 +136,7 @@ jobs:
       - name: Prepare evidence-bound release notes
         run: |
           version="${{ github.ref_name }}"
-          version="${{ version#v }"
+          version="${version#v}"
           awk -v version="$version" '
             $0 ~ "^## \\[" version "\\]" { in_section = 1; next }
             in_section && /^## / { exit }
