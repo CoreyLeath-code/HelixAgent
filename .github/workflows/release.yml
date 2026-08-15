@@ -32,6 +32,8 @@ jobs:
           tag_name="${{ github.ref_name }}"
           version="${{ github.ref_name }}"
           version="${version#v}"
+          test "${{ github.event.created }}" = "true"
+          git cat-file -e "${tag_name}^{tag}"
           case "$tag_name" in
             v[0-9]*.[0-9]*.[0-9]*) ;;
             *) echo "Ref is not a semantic-version tag: $tag_name"; exit 1 ;;
