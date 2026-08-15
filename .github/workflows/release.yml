@@ -4,33 +4,216 @@ on:
   push:
     tags:
       - "v*.*.*"
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "CHANGELOG.md"
+      - "docs/RELEASING.md"
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
+
+concurrency:
+  group: helixagent-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Publish Release
+  validate:
+    name: Validate release candidate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Build source archive
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify tag, package version, and changelog entry
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag_name="${{ github.ref_name }}"
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          test "${{ github.event.created }}" = "true"
+          git cat-file -e "${tag_name}^{tag}"
+          case "$tag_name" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Ref is not a semantic-version tag: $tag_name"; exit 1 ;;
+          esac
+          grep -Fq "version = \"$version\"" pyproject.toml
+          awk -v version="$version" '
+            $0 ~ "^## \\[" version "\\]" { found = 1 }
+            END { exit !found }
+          ' CHANGELOG.md
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install declared development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Run Ruff
+        run: ruff check .
+      - name: Run tests
+        env:
+          PYTHONPATH: .
+        run: pytest
+      - name: Build container and verify optional C++ interop
+        run: |
+          docker build --pull -t helixagent-release:${{ github.sha }} .
+          docker run --rm helixagent-release:${{ github.sha }} python - <<'PY'
+          from agent.agent_core import (
+              cosine_similarity_cpp,
+              cpp_backend_available,
+          )
+
+          assert cpp_backend_available()
+          assert cosine_similarity_cpp([1.0, 0.0], [1.0, 0.0]) == 1.0
+          print("Optional C++ ctypes interop verified in the release image.")
+          PY
+
+  security:
+    name: Security and SBOM
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: python
+      - uses: github/codeql-action/autobuild@v4
+      - uses: github/codeql-action/analyze@v4
+      - name: Scan current source tree for secrets
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            ghcr.io/gitleaks/gitleaks:latest \
+            detect --source . --no-git --redact --no-banner --exit-code 1
+      - uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helixagent-release-sbom
+          path: sbom.cdx.json
+          if-no-files-found: error
+
+  release:
+    name: Create immutable evidence release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [validate, security]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: helixagent-release-sbom
+          path: dist
+      - name: Refuse to overwrite an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} already exists; refusing to overwrite it."
+            exit 1
+          fi
+      - name: Build source archive and checksum
         run: |
           mkdir -p dist
-          tar --exclude=.git --exclude=dist -czf dist/helixagent-${GITHUB_REF_NAME}.tar.gz .
+          git archive --format=tar --prefix="helixagent-${{ github.ref_name }}/" "${{ github.sha }}" | gzip -n > "dist/helixagent-${{ github.ref_name }}.tar.gz"
+          sha256sum "dist/helixagent-${{ github.ref_name }}.tar.gz" > "dist/helixagent-${{ github.ref_name }}.tar.gz.sha256"
+      - name: Prepare evidence-bound release notes
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          awk -v version="$version" '
+            $0 ~ "^## \\[" version "\\]" { in_section = 1; next }
+            in_section && /^## / { exit }
+            in_section { print }
+          ' CHANGELOG.md > dist/changelog-section.md
+          test -s dist/changelog-section.md
+          cat > dist/reproduction.md <<'EOF'
+          ## Reproduction
+
+          The tagged commit was validated by the release workflow with:
+
+          ~~~bash
+          pip install -r requirements-dev.txt
+          ruff check .
+          pytest
+          docker build -t helixagent-release .
+          ~~~
+
+          Vector backend measurements are intentionally not generated on shared GitHub-hosted
+          runners. Run them on the target host and retain the JSON artifact with its environment
+          metadata:
+
+          ~~~bash
+          python -m benchmarks.vector_ops --output vector-ops-results.json
+          ~~~
+          EOF
+          {
+            echo "# HelixAgent ${{ github.ref_name }}"
+            echo
+            echo "## What changed"
+            cat dist/changelog-section.md
+            echo
+            echo "## Validation"
+            echo "- Ruff: passed"
+            echo "- Tests: passed"
+            echo "- Release-image build and optional C++ ctypes interop: passed"
+            echo "- CodeQL and secret scan: passed"
+            echo "- CycloneDX SBOM: generated and attached"
+            echo
+            echo "## Vector backend architecture"
+            echo "NumPy/BLAS default"
+            echo "        |"
+            echo "        +--> optional C++ ctypes backend (interop demonstration)"
+            echo "        |"
+            echo "        +--> pure-Python fallback"
+            echo
+            echo "The C++ backend demonstrates safe native interoperability and is not claimed to outperform NumPy/BLAS."
+            echo
+            cat dist/reproduction.md
+          } > dist/release-notes.md
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.tar.gz
-          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          body_path: dist/release-notes.md
+          generate_release_notes: false
+          files: |
+            dist/helixagent-${{ github.ref_name }}.tar.gz
+            dist/helixagent-${{ github.ref_name }}.tar.gz.sha256
+            dist/sbom.cdx.json
+            dist/reproduction.md
 
   publish-container:
-    name: Publish GHCR Image
+    name: Publish validated GHCR image
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -40,6 +223,10 @@ jobs:
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ github.ref_name }}
       - uses: docker/build-push-action@v6
         with:
           context: .
