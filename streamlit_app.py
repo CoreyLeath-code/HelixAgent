@@ -58,7 +58,7 @@ def render_sidebar() -> None:
 - LangGraph workflow orchestration
 - Python fallback planner
 - Optional Java planner integration
-- Optional C++ vector acceleration
+- NumPy-default vectors with optional C++ ctypes interop
 - FastAPI service layer
 - CI/CD and supply-chain security
 """

@@ -1,23 +1,34 @@
-# 🏗️ Agentic AI Assistant — System Architecture
+# HelixAgent Runtime Architecture
 
-## 1 – High-Level Overview
-The Agentic AI Assistant is an autonomous, multi-tool agent designed to plan, execute, and evaluate complex tasks while logging production-grade metrics. It merges **three languages** to showcase full-stack ML engineering:
+## High-level overview
 
-| Layer | Language | Key Role |
-|-------|----------|----------|
-| Planner | **Java 17** | Deterministic or LLM-enhanced task decomposition (`planner.jar`) |
-| Orchestration | **Python 3.10** | LangGraph agent (`agent_core.py`) routes steps, handles memory and LLM calls |
-| High-Perf Tool | **C++17** | `libvector.so` delivers ultrafast cosine-similarity and vector math |
+HelixAgent is a single-service Python reference implementation of a bounded
+plan/execute/observe/replan runtime. The shipped planner is deterministic and
+rule-based; the planner protocol can support other implementations, but no model
+provider, Java planner, or distributed scheduler is part of the runtime.
 
-## 2 – Execution Flow
-```mermaid
+| Layer | Implementation | Role |
+|---|---|---|
+| Planner | Python | Deterministic typed-task proposal |
+| Runtime | Python | Budgets, approval gates, retries, timeouts, and SQLite checkpoints |
+| Vector operations | NumPy, optional C++ ctypes, Python | NumPy/BLAS default; C++ is an FFI demonstration; Python degrades when NumPy is unavailable |
+| Service | FastAPI | Health, prediction, Prometheus, and OpenTelemetry endpoints |
+
+## Execution flow
+
+~~~mermaid
 flowchart LR
-    A[User Prompt] --> B(Java Planner)<br/>createPlan()
-    B --> C[LangGraph Graph]<br/>state machine
-    C -->|vector_similarity| D[libvector.so (C++)]
-    C -->|web_search|  E[DuckDuckGo API]
-    C -->|snowflake_query| F[Snowflake]
-    C -->|sagemaker_batch| G[SageMaker]
-    C --> H[LLM (OpenAI / Bedrock)]
-    H --> C
-    C --> Z[Final Answer]
+    A[User prompt] --> B[Rule-based planner]
+    B --> C[Python autonomous runtime]
+    C --> D[SQLite checkpoints]
+    C --> E[Governed tool registry]
+    E --> F[NumPy cosine similarity default]
+    F -. opt-in interop .-> G[Optional C++ ctypes binding]
+    F -. NumPy unavailable .-> H[Pure-Python cosine similarity]
+    C --> I[FastAPI response]
+~~~
+
+The runtime owns state transitions and execution bounds; the tool registry owns
+risk and timeout policy; SQLite owns local checkpoint persistence. The optional
+C++ shared library is not selected by default and is not presented as a
+performance replacement for NumPy/BLAS.

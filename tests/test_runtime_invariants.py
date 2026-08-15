@@ -71,9 +71,9 @@ def test_unknown_planned_tool_fails_and_persists(tmp_path: Path) -> None:
 def test_python_vector_fallback_defines_zero_and_dimension_behavior(monkeypatch) -> None:
     monkeypatch.setattr(agent_core, "_lib_vec", None)
 
-    assert agent_core.cosine_sim([0.0, 0.0], [1.0, -1.0]) == 0.0
+    assert agent_core.cosine_similarity_python([0.0, 0.0], [1.0, -1.0]) == 0.0
     with pytest.raises(ValueError, match="equal dimensions"):
-        agent_core.cosine_sim([1.0], [1.0, 2.0])
+        agent_core.cosine_similarity_python([1.0], [1.0, 2.0])
 
 
 @pytest.mark.parametrize(
@@ -89,7 +89,7 @@ def test_python_vector_fallback_is_stable_at_extreme_scales(
     monkeypatch.setattr(agent_core, "_lib_vec", None)
 
     assert math.isclose(
-        agent_core.cosine_sim(left, right), expected, rel_tol=1e-12, abs_tol=1e-12
+        agent_core.cosine_similarity_python(left, right), expected, rel_tol=1e-12, abs_tol=1e-12
     )
 
 
@@ -119,9 +119,9 @@ def test_python_cosine_fallback_satisfies_basic_properties(pair) -> None:
         patch.setattr(agent_core, "_lib_vec", None)
         left, right = pair
 
-        score = agent_core.cosine_sim(left, right)
-        reverse = agent_core.cosine_sim(right, left)
-        self_score = agent_core.cosine_sim(left, left)
+        score = agent_core.cosine_similarity_python(left, right)
+        reverse = agent_core.cosine_similarity_python(right, left)
+        self_score = agent_core.cosine_similarity_python(left, left)
 
         assert -1.0 - 1e-12 <= score <= 1.0 + 1e-12
         assert math.isclose(score, reverse, rel_tol=1e-12, abs_tol=1e-12)

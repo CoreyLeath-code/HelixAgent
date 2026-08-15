@@ -1,7 +1,7 @@
 # HelixAgent
 
 <p align="center">
-  <strong>Durable autonomous-agent runtime in Python: a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints for resumable runs. FastAPI service with Prometheus + OpenTelemetry, optional C++ acceleration with Python fallback, and reproducible benchmarks.</strong>
+  <strong>Durable autonomous-agent runtime in Python: a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints for resumable runs. FastAPI service with Prometheus + OpenTelemetry, NumPy/BLAS vector operations, optional C++ ctypes interop, pure-Python fallback, and reproducible benchmarks.</strong>
 </p>
 
 <p align="center">
@@ -22,13 +22,13 @@
   <a href="https://helixagent-mzekflcbhda4zdchpyhjum.streamlit.app/"><img src="https://img.shields.io/badge/Live%20demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Streamlit demo"></a>
 </p>
 
-HelixAgent is a durable Python agent runtime built around a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints. Its included planner is deterministic and rule-based; the planner protocol is extensible, but no model provider is implemented. Optional C++ cosine similarity degrades gracefully to a scale-stable Python fallback when the shared library is unavailable.
+HelixAgent is a durable Python agent runtime built around a bounded plan/execute/observe/replan loop with governed tools, approval gates, and SQLite checkpoints. Its included planner is deterministic and rule-based; the planner protocol is extensible, but no model provider is implemented. NumPy is the default cosine-similarity backend. The optional C++ ctypes binding is an FFI demonstration, not a performance claim; a scale-stable Python implementation is retained only for NumPy-unavailable environments.
 
 ## Features
 
 - **Bounded autonomous execution:** A typed plan/execute/observe/replan loop enforces iteration and tool-call budgets.
-- **Deterministic planning and native acceleration:** The typed planner protocol uses a rule-based default, while `ctypes` optionally loads a C++ cosine-similarity library.
-- **Resilient fallbacks:** Python planning and vector implementations keep the agent usable without native artifacts.
+- **Deterministic planning and vector backends:** The typed planner protocol uses a rule-based default; NumPy/BLAS is the default vector path, while the opt-in `ctypes` binding demonstrates C++ interop.
+- **Resilient fallbacks:** The pure-Python vector implementation is used only if the declared NumPy dependency is unavailable.
 - **FastAPI service:** `/`, `/health`, and `/predict` endpoints with generated OpenAPI documentation.
 - **Observability:** Prometheus metrics and OpenTelemetry instrumentation are attached to the API.
 - **Interactive demo:** A Streamlit interface exercises the same agent runtime.
@@ -48,7 +48,7 @@ Client / Streamlit
  Autonomous runtime ----> SQLite checkpoints
    |        |       |
    |        |       +--> Governed tool registry + approval gates
-   |        +----------> C++ vector library -> Python fallback
+   |        +----------> NumPy (BLAS) default -> optional C++ via ctypes (interop demo) -> pure-Python fallback
    +-------------------> Planner protocol -> deterministic default
 ```
 
@@ -62,7 +62,7 @@ durability. This keeps a future model planner from bypassing execution invariant
 | Safety | Pause write/destructive tools for explicit approval | Safer default with additional operator latency |
 | Runaway control | Bound iterations, tool calls, retries, and tool duration | Predictable cost; a valid long task may exhaust its budget |
 | Planner extensibility | Typed `Planner` protocol with rule-based default | Credential-free execution; no model provider is implemented |
-| Native acceleration | Optional C++ cosine similarity with Python fallback | Portable behavior with environment-dependent performance |
+| Vector interop and fallback | NumPy/BLAS default, optional C++ ctypes binding, Python degradation path | Portable behavior; C++ demonstrates FFI and is not claimed to beat BLAS |
 
 Runtime invariants are covered by tests: terminal states are persisted, denied tools are never
 executed, budget exhaustion fails closed, retries are bounded, and timeout responses do not wait
@@ -89,14 +89,29 @@ not production SLOs or cross-hardware claims. Reproduce locally with:
 
 ```bash
 python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20
+python -m benchmarks.vector_ops --output vector-ops-results.json
 ```
 
 See [benchmark methodology and limitations](docs/BENCHMARKS.md) for metric definitions and the
 evaluation boundary. CI also uploads a fresh `benchmark-results.json` artifact on Python 3.11.
 
+## Vector-operations benchmark
+
+The vector benchmark measures the NumPy default, the optional C++ ctypes backend when its shared library is present, and the pure-Python implementation. It reports measurements from the machine that runs it; it does not rank backends or claim that C++ outperforms BLAS.
+
+~~~bash
+python -m benchmarks.vector_ops --sizes 128 1024 10000 --warmup 10 --repetitions 100 --output vector-ops-results.json
+~~~
+
+| Backend | 128 | 1k | 10k |
+|---|---|---|---|
+| NumPy | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> |
+| C++ ctypes (when available) | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> |
+| Pure Python | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> | <fill after running: python -m benchmarks.vector_ops> |
+
 ## Evidence boundaries
 
-The CI matrix exercises Python 3.10 and 3.11 quality/tests, container API health, and Streamlit startup; security and supply-chain workflows run separately. Runtime contract coverage includes terminal-run idempotence, approval gating, bounded retries and budgets, persisted failure for unknown tools, and Python vector fallback properties. The C++ path remains optional and environment-dependent, so native-enabled parity is not claimed.
+The CI matrix exercises Python 3.10 and 3.11 quality/tests, container API health, and Streamlit startup; security and supply-chain workflows run separately. Runtime contract coverage includes terminal-run idempotence, approval gating, bounded retries and budgets, persisted failure for unknown tools, and Python vector fallback properties. The C++ path remains optional and environment-dependent; it is an FFI demonstration rather than a claim of better performance than NumPy.
 
 For the full claim-to-evidence map, invariant definitions, and reproducible statistical primitives, see [claims matrix](docs/CLAIMS_MATRIX.md), [runtime invariants](docs/RUNTIME_INVARIANTS.md), and [evaluation notes](benchmarks/eval/README.md).
 

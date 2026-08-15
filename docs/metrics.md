@@ -1,36 +1,33 @@
-# 📊 Agentic AI Assistant — Performance & Cost Metrics
+# Evidence-bound metrics
 
-This page tracks measurable outcomes from the autonomous agent in staging (EKS) and local-dev modes.  
-Metrics are logged to **Snowflake** (`AI_METRICS.PUBLIC.AGENT_RUNS`) and refreshed nightly.
+This repository does not provide verified staging, Snowflake, SageMaker, or
+provider-cost measurements. Those systems are not exercised by the governed
+default runtime, so no production KPI, speed-up, or cost claim is published here.
 
-| Metric | Staging Avg | Local Dev | Definition / Method |
-|--------|-------------|-----------|---------------------|
-| **Task Success-Rate** | **94 %** | 92 % | `% of runs with all plan steps completed without manual retry` |
-| **Median Latency** | 5.7 s | 4.1 s | `plan() ➜ final_answer()` wall-clock, 50th % |
-| **P95 Latency** | 11.3 s | 9.6 s | 95th percentile end-to-end |
-| **Prompt Tokens (μ)** | 186 | 172 | Avg input tokens per step (OpenAI tiktoken) |
-| **Completion Tokens (μ)** | 245 | 231 | Avg output tokens |
-| **Snowflake Credits/Run** | 0.002 | — | Calculated via `WAREHOUSE_METERING_HISTORY` |
-| **SageMaker Cost/Batch** | $0.012 | — | (`TransformJobDuration` × instance $/s) |
-| **Vector Cosine Sim Speed-up** | 18× | n/a | C++ `libvector.so` vs. NumPy (10k × 300 vec) |
-| **Test Coverage** | ![Coverage](https://codecov.io/gh/Trojan3877/Agentic-AI-Assistant/branch/main/graph/badge.svg) | — | Auto-uploaded by CI |
+## Reproducible local measurements
 
-## 📈 Data Collection
+The deterministic autonomy control-loop benchmark remains documented in
+[Benchmark methodology](BENCHMARKS.md). It measures local orchestration and
+SQLite checkpoint overhead only.
 
-| Source | Tool |
-|--------|------|
-| Latency / tokens | FastAPI middleware → Snowflake `INSERT` |
-| Success flag | Agent state machine sets `status="success" | "fail"` |
-| Cost metrics | AWS Cost Explorer API; Snowflake Warehouse Metering |
+Vector-operation timing is a separate experiment. Run it on the target machine
+and retain the JSON artifact with the environment metadata:
 
-## 🧮 KPI Thresholds (SLOs)
+~~~bash
+python -m benchmarks.vector_ops --sizes 128 1024 10000 --warmup 10 --repetitions 100 --output vector-ops-results.json
+~~~
 
-| KPI | Target |
-|-----|--------|
-| P95 Latency | ≤ 12 s |
-| Task Success-Rate | ≥ 90 % |
-| Snowflake Credits / run | ≤ 0.003 |
+| Backend | Result |
+|---|---|
+| NumPy default | <fill after running: python -m benchmarks.vector_ops> |
+| Optional C++ ctypes interop | <fill after running: python -m benchmarks.vector_ops, when the shared library is available> |
+| Pure-Python degradation path | <fill after running: python -m benchmarks.vector_ops> |
 
-> _Metrics auto-generated via GitHub Actions nightly schedule (`.github/workflows/metrics-export.yml`)._
+The benchmark reports measurements from that invocation. It makes no cross-host
+comparison and does not present the C++ binding as faster than NumPy/BLAS.
 
-_Last updated: {{DATE}}_
+## Observability surface
+
+The FastAPI service exposes Prometheus metrics and OpenTelemetry instrumentation.
+Those integration points are observable interfaces, not evidence of a deployed
+telemetry pipeline or service-level objective.
