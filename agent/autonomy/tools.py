@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from agent.autonomy.models import Observation, RiskLevel, Task
-
 
 ToolHandler = Callable[[dict[str, Any]], Any]
 

@@ -5,7 +5,7 @@
 # General project settings
 project:
   name: "HelixAgent"
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Corey Leath"
   description: "Modular AI agent framework for automation, reasoning, and decision-making."
 

@@ -16,12 +16,15 @@ from pydantic import BaseModel, Field
 from agent.autonomy.models import AgentRun
 from agent.autonomy.runtime import AutonomousRuntime
 from agent.autonomy.store import RunNotFoundError
+from agent.version import get_version
 from api.monitoring import setup_monitoring
+
+APP_VERSION = get_version()
 
 app = FastAPI(
     title="HelixAgent API",
     description="Modular AI agent framework for automation, reasoning, and decision-making.",
-    version="1.0.0",
+    version=APP_VERSION,
 )
 
 # Attach Prometheus metrics + OpenTelemetry tracing
@@ -54,7 +57,7 @@ async def root():
 @app.get("/health", tags=["Operations"])
 async def health():
     """Liveness / readiness probe for container orchestration."""
-    return {"status": "healthy", "version": "1.0.0"}
+    return {"status": "healthy", "version": APP_VERSION}
 
 
 @app.post("/predict", tags=["Agent"])

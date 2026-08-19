@@ -7,8 +7,9 @@ Provides centralized structured logging with loguru.
 Ensures consistent, professional logs across all modules.
 """
 
-from loguru import logger
 import sys
+
+from loguru import logger
 
 
 def setup_logger(log_file: str = "logs/helixagent.log", level: str = "INFO"):

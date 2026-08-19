@@ -8,6 +8,7 @@ parameters, and artifacts.
 """
 
 import mlflow
+
 from src.utils.logger import setup_logger
 
 log = setup_logger()
@@ -26,7 +27,7 @@ class ExperimentTracker:
         mlflow.set_experiment(experiment_name)
         log.info(f"Initialized MLflow tracker: {experiment_name}")
 
-    def start_run(self, run_name: str = None):
+    def start_run(self, run_name: str | None = None):
         """Start a new MLflow run"""
         return mlflow.start_run(run_name=run_name)
 
@@ -35,7 +36,7 @@ class ExperimentTracker:
         mlflow.log_params(params)
         log.debug(f"Logged parameters: {params}")
 
-    def log_metrics(self, metrics: dict, step: int = None):
+    def log_metrics(self, metrics: dict, step: int | None = None):
         """Log metrics to MLflow"""
         mlflow.log_metrics(metrics, step=step)
         log.debug(f"Logged metrics: {metrics}")

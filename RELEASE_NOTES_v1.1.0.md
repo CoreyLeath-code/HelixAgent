@@ -1,18 +1,12 @@
-# Changelog
+# HelixAgent v1.1.0
 
-All notable changes to HelixAgent are documented here.
+This release packages the existing runtime and aligns its release evidence with the implementation already on `main`. It covers validation, delivery, documentation correction, and the existing vector-backend design without adding a performance claim or a new product capability.
 
-The project follows Semantic Versioning and the Keep a Changelog format.
+## Tag-triggered release contract
 
-## [Unreleased]
+Pushing a newly created annotated `v1.1.0` tag triggers **HelixAgent Release**. The workflow checks out the exact tag commit; verifies the tag, `pyproject.toml` version, and changelog section; runs Ruff, pytest, the release-image C++-interop probe, CodeQL, secret scanning, and CycloneDX SBOM generation; then attaches a source archive, SHA-256 checksum, `helixagent-release-sbom`, and reproduction instructions to the GitHub Release before publishing the validated GHCR image.
 
-### Added
-
-### Changed
-
-## [1.1.0] - 2026-08-18
-
-### Added
+## Added
 
 - Python 3.10 and 3.11 CI matrix.
 - API contract tests and expanded data-ingestion edge-case coverage.
@@ -25,7 +19,7 @@ The project follows Semantic Versioning and the Keep a Changelog format.
 - Evidence-driven semantic-tag release validation with source checksums, CycloneDX SBOM attachment, and reproducibility instructions.
 - Three-way vector-backend benchmark infrastructure that writes measurements only when executed.
 
-### Changed
+## Changed
 
 - Hardened `DataIngestor` with file validation, split-parameter validation, deterministic partitioning, duplicate-column detection, and explicit types.
 - Reworked the production image into isolated Java, C++, Python build stages and a non-root runtime stage.
@@ -33,16 +27,16 @@ The project follows Semantic Versioning and the Keep a Changelog format.
 - Hardened the ctypes boundary by coercing vectors to contiguous float64 buffers before pointer passing.
 - Corrected vector-backend documentation to remove unsupported C++ performance claims.
 
-## [1.0.0] - 2025-06-20
+## Verification
 
-### Added
+- SBOM artifact: `helixagent-release-sbom` (CycloneDX JSON).
+- Source checksum: `sha256sum` of the deterministic `git archive` source tarball (`gzip -n`).
+- Reproduce the release gates:
 
-- Java task planner.
-- C++ cosine-similarity library.
-- Python agent orchestrator.
-- FastAPI service.
-- Initial Docker and test infrastructure.
-
-[Unreleased]: https://github.com/CoreyLeath-code/HelixAgent/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/CoreyLeath-code/HelixAgent/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/CoreyLeath-code/HelixAgent/releases/tag/v1.0.0
+  ~~~bash
+  pip install -r requirements-dev.txt
+  ruff check api agent src tests streamlit_app.py --select E9,F63,F7,F82
+  pytest
+  docker build -t helixagent-release .
+  python -m benchmarks.vector_ops --output vector-ops-results.json
+  ~~~

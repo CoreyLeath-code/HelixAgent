@@ -29,7 +29,7 @@ class SQLiteRunStore:
         """Release the database handle deterministically."""
         self._connection.close()
 
-    def __enter__(self) -> SQLiteRunStore:
+    def __enter__(self) -> SQLiteRunStore:  # noqa: PYI034 - Python 3.10 compatibility
         return self
 
     def __exit__(self, *_exc: object) -> None:
