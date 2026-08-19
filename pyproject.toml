@@ -1,25 +1,11 @@
 [project]
 name = "helixagent"
-version = "1.1.0"
+version = "1.0.0"
 description = "Deterministic budgeted agent runtime with governed tools and SQLite checkpoints."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Corey Leath" }]
-
-[project.urls]
-Homepage = "https://github.com/CoreyLeath-code/HelixAgent"
-Repository = "https://github.com/CoreyLeath-code/HelixAgent"
-Changelog = "https://github.com/CoreyLeath-code/HelixAgent/blob/main/CHANGELOG.md"
-
-[build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["agent*", "api*", "src*"]
-namespaces = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
