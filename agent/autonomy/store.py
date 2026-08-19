@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import sqlite3
 from pathlib import Path
-from typing import Self
 
 from agent.autonomy.models import AgentRun
 
@@ -30,7 +29,7 @@ class SQLiteRunStore:
         """Release the database handle deterministically."""
         self._connection.close()
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> SQLiteRunStore:  # noqa: PYI034 - Python 3.10 compatibility
         return self
 
     def __exit__(self, *_exc: object) -> None:
