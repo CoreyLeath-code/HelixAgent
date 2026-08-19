@@ -13,3 +13,4 @@ Confirmed issues are prioritized by severity and documented after remediation is
 ## Automated controls
 
 HelixAgent uses CodeQL, Gitleaks, Trivy, pip-audit, Dependabot, CycloneDX SBOM generation, multi-version tests, container health checks, and release-readiness validation.
+  
