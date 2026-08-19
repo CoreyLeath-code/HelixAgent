@@ -21,6 +21,9 @@ where = ["."]
 include = ["agent*", "api*", "src*"]
 namespaces = true
 
+[tool.ruff.lint.per-file-ignores]
+"src/main.py" = ["RUF100"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
