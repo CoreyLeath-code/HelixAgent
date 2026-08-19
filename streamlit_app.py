@@ -177,7 +177,7 @@ def main() -> None:
             with st.spinner("Planning and executing the workflow..."):
                 try:
                     response, elapsed = run_agent(prompt.strip())
-                except Exception as exc:  # pragma: no cover - defensive UI boundary
+                except Exception as exc:  # noqa: BLE001 - defensive UI boundary
                     st.error("HelixAgent could not complete this request.")
                     st.exception(exc)
                 else:

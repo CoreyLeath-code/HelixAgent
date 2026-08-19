@@ -6,7 +6,8 @@ import math
 from pathlib import Path
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from agent import agent_core
 from agent.autonomy.models import GoalSpec, RunStatus, Task

@@ -19,9 +19,10 @@ SNOWFLAKE_WAREHOUSE   e.g. COMPUTE_WH
 """
 
 import os
-import snowflake.connector
 from contextlib import contextmanager
-from typing import List, Dict
+
+import snowflake.connector
+
 
 @contextmanager
 def snowflake_connection():
@@ -38,7 +39,7 @@ def snowflake_connection():
     finally:
         conn.close()
 
-def run_query(sql: str, params: tuple | None = None) -> List[Dict]:
+def run_query(sql: str, params: tuple | None = None) -> list[dict]:
     """
     Execute SQL and return results as list of dicts.
 

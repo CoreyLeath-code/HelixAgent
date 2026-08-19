@@ -17,7 +17,7 @@ import sys
 # Ensure the project root is in the path when running as a script
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.utils.logger import setup_logger  # noqa: E402
+from src.utils.logger import setup_logger
 
 log = setup_logger()
 
@@ -41,7 +41,7 @@ def main() -> None:
     log.info(f"Prompt: {args.prompt}")
 
     try:
-        from agent.agent_core import AgenticAssistant  # noqa: E402
+        from agent.agent_core import AgenticAssistant
 
         log.info("Initializing agent core...")
         assistant = AgenticAssistant()

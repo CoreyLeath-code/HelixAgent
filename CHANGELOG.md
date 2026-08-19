@@ -8,6 +8,12 @@ The project follows Semantic Versioning and the Keep a Changelog format.
 
 ### Added
 
+### Changed
+
+## [1.1.0] - 2026-08-18
+
+### Added
+
 - Python 3.10 and 3.11 CI matrix.
 - API contract tests and expanded data-ingestion edge-case coverage.
 - Coverage XML and JUnit test artifacts.
@@ -37,5 +43,6 @@ The project follows Semantic Versioning and the Keep a Changelog format.
 - FastAPI service.
 - Initial Docker and test infrastructure.
 
-[Unreleased]: https://github.com/CoreyLeath-code/HelixAgent/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/CoreyLeath-code/HelixAgent/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/CoreyLeath-code/HelixAgent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CoreyLeath-code/HelixAgent/releases/tag/v1.0.0

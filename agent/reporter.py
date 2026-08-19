@@ -1,8 +1,10 @@
 # agent/reporter.py
-import os
 import datetime
+import os
 import subprocess
+
 from openai import OpenAI  # Or your framework's custom wrapper
+
 
 def get_git_metadata():
     """Extracts recent activity directly from the repository environment."""
@@ -14,13 +16,13 @@ def get_git_metadata():
             ["git", "diff", "HEAD~1", "HEAD"]
         ).decode("utf-8")[:2000] # Cap to prevent context blowing up
         return commits, diff
-    except Exception:
+    except (OSError, subprocess.CalledProcessError):
         return "No recent commits found or shallow clone.", ""
 
 def generate_daily_log():
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     commits, diff = get_git_metadata()
-    date_str = datetime.date.today().strftime("%Y-%m-%d")
+    date_str = datetime.datetime.now(datetime.timezone.utc).date().strftime("%Y-%m-%d")
     
     prompt = f"""
     You are an autonomous MLOps & System Hygiene Agent responsible for maintaining HelixAgent.
@@ -56,7 +58,7 @@ def generate_daily_log():
         with open(log_file, "r") as f:
             existing_content = f.read()
             
-    header = f"# HelixAgent Autonomous Logs\n\n" if not existing_content else ""
+    header = "# HelixAgent Autonomous Logs\n\n" if not existing_content else ""
     
     new_entry = f"## Log Entry: {date_str}\n\n{log_content}\n\n---\n\n"
     

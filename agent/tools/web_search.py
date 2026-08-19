@@ -20,6 +20,7 @@ Dependencies:
 
 from ddgs import DDGS
 
+
 def search_and_summarize(query: str, max_results: int = 5) -> str:
     """
     Run a web search and summarize the top results.

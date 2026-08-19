@@ -16,9 +16,8 @@ AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 """
 
+
 import boto3
-import json
-from typing import Dict
 
 sm_client = boto3.client("sagemaker")
 runtime   = boto3.client("sagemaker-runtime")
@@ -50,7 +49,7 @@ def start_batch_transform(job_name: str,
     )
     return response["TransformJobArn"]
 
-def get_batch_status(job_name: str) -> Dict:
+def get_batch_status(job_name: str) -> dict:
     """Return status dict for batch job."""
     return sm_client.describe_transform_job(TransformJobName=job_name)
 
