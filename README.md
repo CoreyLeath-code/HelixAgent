@@ -5,8 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="CI"></a>
-  <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml/badge.svg?branch=main" alt="Security"></a>
+  <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="Enterprise CI"></a>
+  <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml/badge.svg?branch=main" alt="Security and supply chain"></a>
+  <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/release.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/release.yml/badge.svg?branch=main" alt="Release validation"></a>
   <a href="https://github.com/CoreyLeath-code/HelixAgent/releases"><img src="https://img.shields.io/github/v/release/CoreyLeath-code/HelixAgent?include_prereleases&sort=semver" alt="Latest release"></a>
   <a href="https://github.com/CoreyLeath-code/HelixAgent/blob/main/LICENSE"><img src="https://img.shields.io/github/license/CoreyLeath-code/HelixAgent" alt="MIT license"></a>
   <img src="https://img.shields.io/github/last-commit/CoreyLeath-code/HelixAgent/main" alt="Last commit">
@@ -36,20 +37,42 @@ HelixAgent is a durable Python agent runtime built around a bounded plan/execute
 - **Automated assurance:** Python 3.10/3.11 tests, coverage artifacts, API and Streamlit smoke tests, container validation, CodeQL, Gitleaks, Trivy, dependency auditing, and CycloneDX SBOM generation.
 - **Durable autonomy:** Budgeted plan/execute/observe/replan runs, SQLite checkpoints, retries, tool timeouts, explicit approval gates, and resumable run APIs.
 
-## Architecture
+## System design flow
 
-```text
-Client / Streamlit
-        |
-        v
-     FastAPI  ----> Prometheus + OpenTelemetry
-        |
-        v
- Autonomous runtime ----> SQLite checkpoints
-   |        |       |
-   |        |       +--> Governed tool registry + approval gates
-   |        +----------> NumPy (BLAS) default -> optional C++ via ctypes (interop demo) -> pure-Python fallback
-   +-------------------> Planner protocol -> deterministic default
+```mermaid
+flowchart LR
+    user["Client or Streamlit user"] --> api["FastAPI service"]
+    api --> runtime["Bounded autonomous runtime"]
+    runtime --> planner["Rule-based planner\n(typed Planner protocol)"]
+    runtime --> registry["Governed tool registry"]
+    registry --> gate{"Approval required?"}
+    gate -- "yes" --> approval["Explicit operator decision"]
+    approval -- "approved" --> tool["Tool execution"]
+    approval -- "denied" --> failed["Fail closed and persist result"]
+    gate -- "no" --> tool
+    runtime --> store["SQLite run checkpoints"]
+    api -. "metrics and traces" .-> observability["Prometheus and OpenTelemetry"]
+```
+
+Every state transition is owned by the runtime and persisted through the checkpoint store. The
+included planner is deterministic and rule-based; a planner protocol exists for extension, but
+the repository does not ship a model provider or a distributed scheduler.
+
+## Runtime architecture
+
+```mermaid
+flowchart TB
+    request["Prompt / API request"] --> plan["Plan"]
+    plan --> execute["Execute governed task"]
+    execute --> observe["Observe outcome"]
+    observe --> replan{"Terminal state or budget exhausted?"}
+    replan -- "no" --> plan
+    replan -- "yes" --> result["Persisted terminal result"]
+
+    execute --> vector["Cosine-similarity dispatch"]
+    vector --> numpy["NumPy / BLAS default"]
+    vector -. "explicit opt-in" .-> cpp["C++ ctypes interop demo"]
+    vector -. "NumPy unavailable" .-> python["Pure-Python fallback"]
 ```
 
 The runtime separates policy from mechanism: planners propose typed tasks, the runtime owns
@@ -73,6 +96,13 @@ uses the writable non-root path `/app/data/helixagent_runs.db`.
 
 The benchmark is a deterministic microbenchmark of orchestration plus SQLite checkpoints. It
 does **not** include network search, model inference, or provider latency.
+
+### Measurement protocol
+
+- Warm up the process before collecting samples, then run a fixed number of sequential executions.
+- Use `time.perf_counter()` for latency measurement and nearest-rank percentiles for p95.
+- Create a fresh SQLite database for each invocation and record environment metadata in the JSON output.
+- Treat results as local regression evidence only: they are neither service-level objectives nor a claim about concurrent or production capacity.
 
 | Metric | Reference result |
 |---|---:|
@@ -128,6 +158,9 @@ python -m venv .venv
 Activate the environment, then install and run the API:
 
 ```bash
+# macOS/Linux
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn api.main:app --reload
 ```
@@ -145,6 +178,17 @@ Run the Streamlit demo locally:
 
 ```bash
 streamlit run streamlit_app.py
+```
+
+For an isolated package-build check, use the release gate's packaging path:
+
+```bash
+python -m pip install --upgrade build
+python -m build
+python -m venv .venv-wheel-check
+# activate .venv-wheel-check, then:
+pip install dist/*.whl
+python -c "import agent, api, src; print('wheel import succeeded')"
 ```
 
 ## Test and container workflows
@@ -170,6 +214,63 @@ git push origin vX.Y.Z
 
 See [release procedure and evidence artifacts](docs/RELEASING.md) for the required
 changelog/version update, validation, and reproducibility guidance.
+
+### Reproduce an evidence run
+
+1. Start from a clean checkout and record the commit with `git rev-parse HEAD`.
+2. Create a fresh virtual environment and install `requirements-dev.txt`.
+3. Run the test, static-analysis, and benchmark commands below without changing the workload.
+4. Retain the benchmark JSON output, Python version, operating-system details, and CPU details with the commit SHA.
+5. Compare revisions on the same host; report distributions and environment changes rather than treating a single mean as a portability claim.
+
+```bash
+pytest tests -v --cov=agent --cov=api --cov=src --cov-report=term-missing
+ruff check api agent src tests streamlit_app.py
+python -m benchmarks.autonomy_runtime --iterations 200 --warmup 20 > autonomy-results.json
+python -m benchmarks.vector_ops --sizes 128 1024 10000 --warmup 10 --repetitions 100 --output vector-ops-results.json
+```
+
+## Extended questions and answers
+
+### Is HelixAgent a model-backed agent?
+
+No. The shipped planner is a deterministic, rule-based implementation. The typed planner protocol
+is an extension point, not evidence that a model provider is included or evaluated.
+
+### What makes a run durable?
+
+The runtime checkpoints run state in SQLite. A run can be restored by ID, and terminal states are
+persisted so a completed run is not executed twice. This is single-node durability, not a
+distributed-workflow guarantee.
+
+### How are risky tools governed?
+
+Tools carry risk and timeout policy. A tool that requires approval pauses until an explicit
+decision is supplied; a denied action is not executed and its result is persisted.
+
+### What happens when a task runs too long?
+
+Iteration, tool-call, retry, and tool-duration budgets constrain execution. When a bound is
+exhausted, the runtime fails closed and records the terminal state rather than continuing
+unbounded work.
+
+### Which vector implementation is used by default?
+
+NumPy/BLAS is the default backend. The C++ ctypes path is opt-in and demonstrates safe native
+interop; it is not described as a performance replacement for BLAS. Pure Python is used only
+when NumPy is unavailable.
+
+### What do the published benchmark numbers prove?
+
+They describe one documented local microbenchmark of deterministic orchestration and SQLite
+checkpoints. They exclude external network calls, model inference, concurrent load, and provider
+cost; they are not production latency or quality claims.
+
+### How can I verify the repository's release evidence?
+
+Run the reproducibility commands above, inspect the workflow artifacts, and—after a version tag
+is validated—compare the GitHub Release's deterministic source archive checksum and CycloneDX
+SBOM to the tagged commit.
 
 ## Project map
 
