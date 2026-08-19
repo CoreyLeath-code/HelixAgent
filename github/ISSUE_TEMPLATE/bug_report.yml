@@ -16,7 +16,7 @@ body:
       placeholder: |
         - OS: Ubuntu 22.04  
         - Python: 3.10.12  
-        - Docker tag: agentic-ai:1.0.0  
+        - Docker tag: helixagent:1.1.0  
         - Commit: abc123
     validations:
       required: true

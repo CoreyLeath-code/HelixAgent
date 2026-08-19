@@ -3,7 +3,7 @@ name: helixagent
 description: A modular AI agent framework deployed with Kubernetes + Helm
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: "1.1.0"
 maintainers:
   - name: Corey Leath
     email: corey.leath@example.com
