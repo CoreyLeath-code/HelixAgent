@@ -6,12 +6,14 @@
 
 <p align="center">
   <a href="https://github.com/CoreyLeath-code/HelixAgent/releases/latest"><img src="https://img.shields.io/github/v/release/CoreyLeath-code/HelixAgent?display_name=tag&sort=semver" alt="Latest release"></a>
-  <a href="https://github.com/CoreyLeath-code/HelixAgent/pkgs/container/HelixAgent"><img src="https://img.shields.io/badge/GHCR-HelixAgent-2496ED?logo=docker&logoColor=white" alt="GHCR package"></a>
+  <a href="https://github.com/CoreyLeath-code/HelixAgent/blob/main/LICENSE"><img src="https://img.shields.io/github/license/CoreyLeath-code/HelixAgent" alt="MIT license"></a>
+  <img src="https://img.shields.io/github/last-commit/CoreyLeath-code/HelixAgent/main" alt="Last commit">
+</p>
+
+<p align="center">
   <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="Enterprise CI"></a>
   <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/security.yml/badge.svg?branch=main" alt="Security and supply chain"></a>
   <a href="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/release.yml"><img src="https://github.com/CoreyLeath-code/HelixAgent/actions/workflows/release.yml/badge.svg?branch=main" alt="Release validation"></a>
-  <a href="https://github.com/CoreyLeath-code/HelixAgent/blob/main/LICENSE"><img src="https://img.shields.io/github/license/CoreyLeath-code/HelixAgent" alt="MIT license"></a>
-  <img src="https://img.shields.io/github/last-commit/CoreyLeath-code/HelixAgent/main" alt="Last commit">
 </p>
 
 <p align="center">

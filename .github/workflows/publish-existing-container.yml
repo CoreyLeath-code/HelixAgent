@@ -1,0 +1,63 @@
+name: Publish Existing Release Container
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing semantic-version tag to publish
+        required: true
+        default: v1.1.0
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish GHCR image for existing release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate requested tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must match vX.Y.Z: $TAG"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify annotated tag and package version
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git cat-file -e "${TAG}^{tag}"
+          version="${TAG#v}"
+          grep -Fq "version = \"$version\"" pyproject.toml
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Verify GitHub Release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish validated container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/coreyleath-code/helixagent:${{ env.VERSION }}
+            ghcr.io/coreyleath-code/helixagent:${{ inputs.tag }}
+            ghcr.io/coreyleath-code/helixagent:latest
