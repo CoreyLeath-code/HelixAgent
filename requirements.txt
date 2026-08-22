@@ -42,7 +42,7 @@ langgraph==1.1.6
 jpype1==1.6.0
 
 # --- Cloud / data-source tools ---
-boto3==1.42.83
+boto3==1.43.74
 snowflake-connector-python==4.7.1
 ddgs==9.12.1
 
