@@ -6,7 +6,7 @@
 replicaCount: 1
 
 image:
-  repository: trojan3877/agentic-ai-assistant  # change to your Docker Hub repo
+  repository: ghcr.io/coreyleath-code/helixagent
   tag: "latest"
   pullPolicy: IfNotPresent
 
