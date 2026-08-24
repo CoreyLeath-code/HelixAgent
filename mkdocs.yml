@@ -1,7 +1,7 @@
 site_name: HelixAgent Docs
 site_description: Modular AI agent framework – Documentation
 site_author: Corey Leath
-repo_url: https://github.com/Trojan3877/HelixAgent
+repo_url: https://github.com/CoreyLeath-code/HelixAgent
 theme:
   name: material
   palette:
