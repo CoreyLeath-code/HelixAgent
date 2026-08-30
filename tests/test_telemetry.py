@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from agent.autonomy.models import GoalSpec, Task
+from agent.autonomy.models import GoalSpec, RiskLevel, Task
 from agent.autonomy.runtime import AutonomousRuntime
 from agent.autonomy.store import SQLiteRunStore
 from agent.autonomy.tools import ToolRegistry, ToolSpec
@@ -39,6 +39,16 @@ class OneTaskPlanner:
     def create_plan(self, goal: GoalSpec) -> list[Task]:
         del goal
         return [Task(objective="Echo", tool="echo", arguments={"value": "sensitive-result"})]
+
+    def replan(self, run, failed):
+        del failed
+        return run.plan
+
+
+class ApprovalPlanner:
+    def create_plan(self, goal: GoalSpec) -> list[Task]:
+        del goal
+        return [Task(objective="Write", tool="write")]
 
     def replan(self, run, failed):
         del failed
@@ -107,3 +117,26 @@ def test_runtime_emits_allowlisted_events_without_payload_content() -> None:
     assert "sensitive-result" not in serialized
     assert '"arguments"' not in serialized
     assert '"final_output"' not in serialized
+
+
+def test_approved_run_emits_started_once_then_resumed() -> None:
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec("write", lambda args: "written", "Write", risk=RiskLevel.WRITE)
+    )
+    sink = RecordingSink()
+    runtime = AutonomousRuntime(
+        planner=ApprovalPlanner(),
+        registry=registry,
+        store=SQLiteRunStore(":memory:"),
+        event_sink=sink,
+    )
+
+    submitted = runtime.submit("write something")
+    paused = runtime.run(submitted.id)
+    runtime.approve(paused.id, paused.plan[0].id, True)
+    runtime.run(paused.id)
+
+    event_types = [event.event_type for event in sink.events]
+    assert event_types.count(EventType.RUN_STARTED) == 1
+    assert event_types.count(EventType.RUN_RESUMED) == 1
