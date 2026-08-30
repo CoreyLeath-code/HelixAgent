@@ -115,9 +115,10 @@ class AutonomousRuntime:
         if run.status in (RunStatus.COMPLETED, RunStatus.FAILED):
             return run
 
+        is_resume = any(item.approved is True for item in run.approvals)
         run.status = RunStatus.RUNNING
         self.store.save(run)
-        self._emit(EventType.RUN_STARTED, run)
+        self._emit(EventType.RUN_RESUMED if is_resume else EventType.RUN_STARTED, run)
 
         while run.current_task < len(run.plan):
             if run.iterations >= run.max_iterations or run.tool_calls >= run.tool_budget:
