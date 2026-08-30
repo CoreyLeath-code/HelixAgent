@@ -136,7 +136,7 @@ resource "aws_kinesis_firehose_delivery_stream" "agent_events" {
     buffering_interval = var.buffer_interval_seconds
     compression_format = "GZIP"
 
-    prefix = "events/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/"
+    prefix              = "events/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/"
     error_output_prefix = "errors/!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/"
 
     cloudwatch_logging_options {
