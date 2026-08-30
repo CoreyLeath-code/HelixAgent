@@ -14,6 +14,7 @@ from agent.autonomy.models import RiskLevel, RunStatus, utc_now
 class EventType(str, Enum):
     RUN_SUBMITTED = "run.submitted"
     RUN_STARTED = "run.started"
+    RUN_RESUMED = "run.resumed"
     PLAN_CREATED = "plan.created"
     TASK_STARTED = "task.started"
     TASK_COMPLETED = "task.completed"
