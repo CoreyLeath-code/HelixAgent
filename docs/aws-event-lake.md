@@ -19,10 +19,12 @@ flowchart LR
 
 The current schema emits operational metadata for:
 
-- `run.submitted`, `run.started`, `run.completed`, `run.failed`, `run.budget_exhausted`
+- `run.submitted`, `run.started`, `run.resumed`, `run.completed`, `run.failed`, `run.budget_exhausted`
 - `plan.created`
 - `task.started`, `task.completed`, `task.retry`, `task.failed`
 - `approval.requested`, `approval.approved`, `approval.denied`
+
+`run.started` is emitted only for the initial execution. When an approved run continues after an approval pause, the runtime emits `run.resumed` instead, preserving unambiguous lifecycle counts.
 
 The `AgentEvent` schema intentionally excludes raw objectives, tool arguments, observation outputs, approval reasons, and final outputs. Event records may contain run/task IDs, tool name, risk level, status, attempt counts, iteration/tool-call counters, plan size, duration, and timestamps.
 
