@@ -5,4 +5,4 @@ ruff>=0.16.5
 mypy>=2.3.1
 bandit>=1.9.4
 pip-audit>=2.10.1
-hypothesis>=6.120,<7
+hypothesis>=6.168.0,<7
