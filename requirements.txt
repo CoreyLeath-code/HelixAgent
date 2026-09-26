@@ -43,7 +43,7 @@ jpype1==1.7.1
 
 # --- Cloud / data-source tools ---
 boto3==1.43.74
-snowflake-connector-python==4.7.1
+snowflake-connector-python==4.7.5
 ddgs==9.16.0
 
 # --- Documentation ---
