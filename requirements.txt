@@ -27,7 +27,7 @@ opentelemetry-instrumentation-fastapi==0.45b0
 mlflow==3.16.0
 
 # --- Linting / formatting ---
-flake8==7.0.0
+flake8==7.4.1
 black==26.5.1
 isort==5.13.2
 
