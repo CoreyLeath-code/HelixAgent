@@ -38,7 +38,7 @@ coverage==7.16.1
 httpx==0.28.1
 
 # --- Agent orchestration ---
-langgraph==1.2.11
+langgraph==1.2.12
 jpype1==1.7.1
 
 # --- Cloud / data-source tools ---
