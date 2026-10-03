@@ -29,7 +29,7 @@ mlflow==3.16.1
 # --- Linting / formatting ---
 flake8==7.4.1
 black==26.5.1
-isort==5.13.2
+isort==9.0.2
 
 # --- Testing ---
 pytest==9.1.1
