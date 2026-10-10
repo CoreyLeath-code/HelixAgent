@@ -15,7 +15,7 @@ uvicorn[standard]==0.53.0
 starlette==1.7.0
 
 # --- Streamlit demo ---
-streamlit==1.49.1
+streamlit==1.65.0
 
 # --- Monitoring ---
 prometheus-client==0.20.0
