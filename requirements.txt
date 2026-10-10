@@ -10,7 +10,7 @@ pyyaml==6.0.1
 loguru==0.7.3
 
 # --- API ---
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.53.0
 starlette==1.7.0
 
