@@ -2,7 +2,7 @@
 setuptools>=68,<85
 pytest-asyncio>=1.4.0
 ruff>=0.16.5
-mypy>=2.3.1
+mypy>=2.4.0
 bandit>=1.9.4
 pip-audit>=2.10.1
 hypothesis>=6.168.5,<7
