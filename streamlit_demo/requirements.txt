@@ -1,3 +1,3 @@
 streamlit==1.65.0
-langgraph==1.2.12
+langgraph==1.2.15
 ddgs==9.16.0
