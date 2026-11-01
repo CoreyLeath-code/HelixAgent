@@ -11,7 +11,7 @@ loguru==0.7.3
 
 # --- API ---
 fastapi==0.141.1
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 starlette==1.7.0
 
 # --- Streamlit demo ---
