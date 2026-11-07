@@ -44,7 +44,7 @@ jpype1==1.7.1
 # --- Cloud / data-source tools ---
 boto3==1.43.74
 snowflake-connector-python==4.8.0
-ddgs==9.16.0
+ddgs==9.16.1
 
 # --- Documentation ---
 mkdocs==1.5.3
