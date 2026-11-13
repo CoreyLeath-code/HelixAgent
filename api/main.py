@@ -101,6 +101,8 @@ async def decide_approval(
         run = runtime.approve(run_id, task_id, payload.approved)
     except (RunNotFoundError, KeyError) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if payload.approved:
         background_tasks.add_task(runtime.run, run.id)
     return run

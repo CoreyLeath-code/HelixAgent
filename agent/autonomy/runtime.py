@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 from agent.autonomy.models import (
     AgentRun,
     ApprovalRequest,
@@ -32,6 +34,8 @@ class AutonomousRuntime:
         self.registry = registry or self._default_registry()
         self.store = store or SQLiteRunStore()
         self.event_sink = event_sink or build_event_sink_from_env()
+        self._run_locks: dict[str, threading.Lock] = {}
+        self._run_locks_guard = threading.Lock()
 
     @staticmethod
     def _default_registry() -> ToolRegistry:
@@ -110,7 +114,26 @@ class AutonomousRuntime:
         self._emit(EventType.PLAN_CREATED, run, plan_size=len(run.plan))
         return run
 
+    def _lock_for_run(self, run_id: str) -> threading.Lock:
+        with self._run_locks_guard:
+            return self._run_locks.setdefault(run_id, threading.Lock())
+
+    def _discard_terminal_lock(self, run: AgentRun) -> None:
+        if run.status not in (RunStatus.COMPLETED, RunStatus.FAILED):
+            return
+        with self._run_locks_guard:
+            self._run_locks.pop(run.id, None)
+
     def run(self, run_id: str) -> AgentRun:
+        """Execute one durable run at most once per runtime process."""
+
+        lock = self._lock_for_run(run_id)
+        with lock:
+            run = self._run_locked(run_id)
+            self._discard_terminal_lock(run)
+            return run
+
+    def _run_locked(self, run_id: str) -> AgentRun:
         run = self.store.get(run_id)
         if run.status in (RunStatus.COMPLETED, RunStatus.FAILED):
             return run
@@ -213,7 +236,18 @@ class AutonomousRuntime:
         return run
 
     def approve(self, run_id: str, task_id: str, approved: bool) -> AgentRun:
+        """Persist a decision without racing execution of the same run."""
+
+        lock = self._lock_for_run(run_id)
+        with lock:
+            run = self._approve_locked(run_id, task_id, approved)
+            self._discard_terminal_lock(run)
+            return run
+
+    def _approve_locked(self, run_id: str, task_id: str, approved: bool) -> AgentRun:
         run = self.store.get(run_id)
+        if run.status != RunStatus.WAITING_APPROVAL:
+            raise ValueError(f"Run {run_id} is not waiting for approval")
         request = next((item for item in run.approvals if item.task_id == task_id), None)
         if request is None:
             raise KeyError(f"No approval request for task {task_id}")
