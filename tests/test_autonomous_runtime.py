@@ -1,6 +1,7 @@
 """Behavioral tests for the durable, governed autonomous control loop."""
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from agent.autonomy.models import GoalSpec, RiskLevel, RunStatus, Task
@@ -45,6 +46,34 @@ def test_run_completes_and_persists_observation(tmp_path: Path) -> None:
     assert completed.final_output == "evidence"
     assert restored.observations[0].output == "evidence"
 
+
+
+def test_concurrent_run_requests_execute_a_run_once(tmp_path: Path) -> None:
+    calls = 0
+
+    def slow_echo(_args):
+        nonlocal calls
+        calls += 1
+        time.sleep(0.05)
+        return "evidence"
+
+    registry = ToolRegistry()
+    registry.register(ToolSpec("slow_echo", slow_echo, "Produce evidence"))
+    runtime = runtime_for(
+        tmp_path,
+        [Task(objective="Produce evidence", tool="slow_echo")],
+        registry,
+    )
+    submitted = runtime.submit("Produce evidence")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(runtime.run, [submitted.id, submitted.id]))
+
+    restored = runtime.store.get(submitted.id)
+    assert calls == 1
+    assert all(result.status == RunStatus.COMPLETED for result in results)
+    assert restored.tool_calls == 1
+    assert len(restored.observations) == 1
 
 def test_write_tool_pauses_until_explicit_approval(tmp_path: Path) -> None:
     registry = ToolRegistry()
