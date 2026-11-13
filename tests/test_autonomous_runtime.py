@@ -4,6 +4,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
+
 from agent.autonomy.models import GoalSpec, RiskLevel, RunStatus, Task
 from agent.autonomy.runtime import AutonomousRuntime
 from agent.autonomy.store import SQLiteRunStore
@@ -47,7 +49,6 @@ def test_run_completes_and_persists_observation(tmp_path: Path) -> None:
     assert restored.observations[0].output == "evidence"
 
 
-
 def test_concurrent_run_requests_execute_a_run_once(tmp_path: Path) -> None:
     calls = 0
 
@@ -75,6 +76,7 @@ def test_concurrent_run_requests_execute_a_run_once(tmp_path: Path) -> None:
     assert restored.tool_calls == 1
     assert len(restored.observations) == 1
 
+
 def test_write_tool_pauses_until_explicit_approval(tmp_path: Path) -> None:
     registry = ToolRegistry()
     registry.register(
@@ -91,6 +93,19 @@ def test_write_tool_pauses_until_explicit_approval(tmp_path: Path) -> None:
     completed = runtime.run(paused.id)
     assert completed.status == RunStatus.COMPLETED
 
+
+
+def test_stale_approval_decision_is_rejected(tmp_path: Path) -> None:
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec("write", lambda args: "written", "Write data", risk=RiskLevel.WRITE)
+    )
+    runtime = runtime_for(tmp_path, [Task(objective="Write", tool="write")], registry)
+    paused = runtime.run(runtime.submit("Write an artifact").id)
+
+    runtime.approve(paused.id, paused.plan[0].id, True)
+    with pytest.raises(ValueError, match="not waiting for approval"):
+        runtime.approve(paused.id, paused.plan[0].id, True)
 
 def test_denied_approval_fails_without_tool_execution(tmp_path: Path) -> None:
     calls: list[str] = []
