@@ -94,7 +94,6 @@ def test_write_tool_pauses_until_explicit_approval(tmp_path: Path) -> None:
     assert completed.status == RunStatus.COMPLETED
 
 
-
 def test_stale_approval_decision_is_rejected(tmp_path: Path) -> None:
     registry = ToolRegistry()
     registry.register(
@@ -106,6 +105,7 @@ def test_stale_approval_decision_is_rejected(tmp_path: Path) -> None:
     runtime.approve(paused.id, paused.plan[0].id, True)
     with pytest.raises(ValueError, match="not waiting for approval"):
         runtime.approve(paused.id, paused.plan[0].id, True)
+
 
 def test_denied_approval_fails_without_tool_execution(tmp_path: Path) -> None:
     calls: list[str] = []
