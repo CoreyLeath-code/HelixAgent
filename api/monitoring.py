@@ -33,6 +33,13 @@ REQUEST_LATENCY = Histogram(
 )
 
 
+def _endpoint_label(request: Request) -> str:
+    """Use the matched route template to avoid unbounded metric cardinality."""
+
+    route = request.scope.get("route")
+    return getattr(route, "path", "unmatched")
+
+
 def setup_monitoring(app: FastAPI):
     """Attach monitoring endpoints and tracing to FastAPI"""
 
@@ -44,16 +51,22 @@ def setup_monitoring(app: FastAPI):
     # Middleware for metrics
     @app.middleware("http")
     async def prometheus_middleware(request: Request, call_next):
-        start = time.time()
+        start = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            endpoint = _endpoint_label(request)
+            REQUEST_COUNT.labels(
+                method=request.method, endpoint=endpoint, status_code=500
+            ).inc()
+            REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start)
+            raise
 
-        response = await call_next(request)
-        latency = time.time() - start
-
+        endpoint = _endpoint_label(request)
         REQUEST_COUNT.labels(
-            method=request.method, endpoint=request.url.path, status_code=response.status_code
+            method=request.method, endpoint=endpoint, status_code=response.status_code
         ).inc()
-        REQUEST_LATENCY.labels(endpoint=request.url.path).observe(latency)
-
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start)
         return response
 
     # -----------------------------
