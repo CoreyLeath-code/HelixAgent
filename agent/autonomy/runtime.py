@@ -246,6 +246,8 @@ class AutonomousRuntime:
 
     def _approve_locked(self, run_id: str, task_id: str, approved: bool) -> AgentRun:
         run = self.store.get(run_id)
+        if run.status != RunStatus.WAITING_APPROVAL:
+            raise ValueError(f"Run {run_id} is not waiting for approval")
         request = next((item for item in run.approvals if item.task_id == task_id), None)
         if request is None:
             raise KeyError(f"No approval request for task {task_id}")
