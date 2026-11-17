@@ -19,9 +19,9 @@ streamlit==1.65.0
 
 # --- Monitoring ---
 prometheus-client==0.26.0
-opentelemetry-api==1.24.0
-opentelemetry-sdk==1.24.0
-opentelemetry-instrumentation-fastapi==0.45b0
+opentelemetry-api==1.45.2
+opentelemetry-sdk==1.45.2
+opentelemetry-instrumentation-fastapi==0.66b2
 
 # --- Experiment tracking ---
 mlflow==3.18.0
