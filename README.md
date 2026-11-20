@@ -37,6 +37,18 @@ HelixAgent is a durable Python agent runtime built around a bounded plan/execute
 
 The runtime can also mirror **allowlisted lifecycle metadata** to Amazon Data Firehose for buffered delivery into a private Amazon S3 event lake. This export is disabled by default and is deliberately separate from SQLite: SQLite remains the source of truth for resumability, while Firehose/S3 is an optional audit and analytics mirror.
 
+## Reviewer map
+
+| Engineering claim | Where to verify it |
+|---|---|
+| Resumable bounded execution | [Runtime architecture](#runtime-architecture), [`tests/test_autonomous_runtime.py`](tests/test_autonomous_runtime.py) |
+| Tool gating and runtime invariants | [System design flow](#system-design-flow), [`tests/test_runtime_invariants.py`](tests/test_runtime_invariants.py) |
+| API behavior | [`tests/test_api.py`](tests/test_api.py) and [test workflows](#test-and-container-workflows) |
+| Vector backend selection | [Vector benchmark](#vector-operations-benchmark) and [`tests/test_vector_backends.py`](tests/test_vector_backends.py) |
+| Reproducible measurements | [Research metrics](#research-metrics-and-benchmarks), not production latency guarantees |
+
+**Evidence boundary:** the included planner is deterministic; optional integrations should not be confused with an implemented model-provider-backed agent.
+
 ## Features
 
 - **Bounded autonomous execution:** A typed plan/execute/observe/replan loop enforces iteration and tool-call budgets.
