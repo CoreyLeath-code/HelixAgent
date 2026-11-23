@@ -28,7 +28,7 @@ mlflow==3.18.0
 
 # --- Linting / formatting ---
 flake8==7.4.1
-black==26.10.0
+black==26.10.1
 isort==9.0.2
 
 # --- Testing ---
